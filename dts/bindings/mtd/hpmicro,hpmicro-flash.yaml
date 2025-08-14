@@ -1,0 +1,19 @@
+
+description: HPMICRO XPI ROM Api
+
+compatible: "hpmicro,hpmicro-flash"
+
+properties:
+  "nor-cfg-opt-hdr":
+    type: int
+    required: true
+
+  "nor-cfg-opt-opt0":
+    type: int
+    required: true
+
+  "nor-cfg-opt-opt1":
+    type: int
+    required: true
+
+include: [soc-nv-flash.yaml]

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016-2017 Jean-Paul Etienne <fractalclone@gmail.com>
- * Copyright (c) 2024 HPMicro
+ * Copyright (c) 2024-2025 HPMicro
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -140,6 +140,7 @@ SECTIONS
  * zephyr_linker_sources(ROM_START ...).
  */
 #include <snippets-rom-start.ld>
+		KEEP(*(.init.*))
     } GROUP_LINK_IN(ROMABLE_REGION)
 
 #ifdef CONFIG_CODE_DATA_RELOCATION

@@ -16,6 +16,7 @@
 
 	aliases {
 		led0 = &led_r;
+		mcuboot-led0 = &led_r;
 		sw0 = &key1;
 	};
 
@@ -27,6 +28,7 @@
 		zephyr,itcm = &ilm;
 		zephyr,dtcm = &dlm;
 		zephyr,code-partition = &slot0_partition;
+		zephyr,flash-controller = &xpi0;
 	};
 
 	dram: memory@40000000 {
@@ -310,11 +312,14 @@
 &xpi0 {
 	status = "okay";
 	flash0: flash@0 {
-		compatible = "soc-nv-flash";
+		compatible = "hpmicro,hpmicro-flash", "soc-nv-flash";
 		reg = <0x80000000 DT_SIZE_M(16)>;
 		status = "okay";
 		erase-block-size = <4096>;
 		write-block-size = <1>;
+		nor-cfg-opt-hdr = <0xfcf90001>;
+		nor-cfg-opt-opt0 = <0x05>;
+		nor-cfg-opt-opt1 = <0x1000>;
 
 		partitions {
 			compatible = "fixed-partitions";
@@ -323,12 +328,22 @@
 
 			boot_partition: partition@0 {
 				label = "mcuboot";
-				reg = <0x0 0x3000>;
+				reg = <0x3000 0x40000>;
 			};
 
-			slot0_partition: partition@3000 {
+			slot0_partition: partition@43000 {
 				label = "image-0";
-				reg = <0x3000 DT_SIZE_M(4)>;
+				reg = <0x43000 DT_SIZE_K(1536)>;
+			};
+
+			slot1_partition: partition@1c3000 {
+				label = "image-1";
+				reg = <0x1c3000 DT_SIZE_K(1536)>;
+			};
+
+			scratch_partition: partition@343000 {
+				label = "image-scratch";
+				reg = <0x343000 DT_SIZE_K(128)>;
 			};
 		};
 	};

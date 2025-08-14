@@ -1,7 +1,7 @@
 # Configuration options for hpmicro riscv SOCs supporting the riscv privileged
 # architecture specification
 
-# Copyright (c) 2024 HPMicro
+# Copyright (c) 2024-2025 HPMicro
 # SPDX-License-Identifier: Apache-2.0
 config SOC_FAMILY_HPM
 	select ZEPHYR_HPM_SDK_MODULE	
@@ -10,25 +10,33 @@ if SOC_FAMILY_HPM
 
 rsource "${ZEPHYR_SDK_GLUE_MODULE_DIR}/soc/hpmicro/*/Kconfig"
 
+config USE_DT_CODE_PARTITION
+	default y if BOOTLOADER_MCUBOOT
+
 config HPM_BOOT_HEADER
-	bool
+	bool "HPMicro boot header Struct included in the image"
 	default y if XIP
+	depends on !BOOTLOADER_MCUBOOT
 	help
-	  HPMicro XIP support
+	  HPMicro bootrom use this struct to boot the image, if first stage bootloader is used, this must be N.
 
 if HPM_BOOT_HEADER
 
 config BOOT_NOR_CFG_OPTION_OFFSET
-	hex "Nor flash config block offset"
+	hex "Nor flash config block offset22"
 	default 0x400
+	depends on !USE_DT_CODE_PARTITION
 	help
 	  HPMicro nor flash support information start offset
 
 config BOOT_HEADER_LOAD_OFFSET
 	hex "Bootheader config block offset"
 	default 0x1000
+	depends on !USE_DT_CODE_PARTITION
 	help
 	  HPMicro boot header symbol information start offset
+
+endif
 
 config APP_LOAD_ADDR_OFFSET
 	hex "APP load offset"
@@ -36,6 +44,19 @@ config APP_LOAD_ADDR_OFFSET
 	help
 	  HPMicro app image start offset
 
-endif
+if BOOTLOADER_MCUBOOT
 
+config HAS_FLASH_LOAD_OFFSET
+	default y
+
+config MCUBOOT_GENERATE_UNSIGNED_IMAGE
+	default y
+
+config MCUBOOT_GENERATE_CONFIRMED_IMAGE
+	default y
+
+config ROM_START_OFFSET
+	default 0x200
+
+endif # BOOTLOADER_MCUBOOT
 endif # SOC_FAMILY_HPM

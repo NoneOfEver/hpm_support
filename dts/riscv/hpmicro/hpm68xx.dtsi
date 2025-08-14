@@ -200,7 +200,7 @@
 
         xpi0: xpi@f3000000 {
             compatible = "hpmicro,xpi";
-            reg = <0xf3040000 DT_SIZE_K(16)>;
+            reg = <0xf3000000 DT_SIZE_K(16)>;
             #address-cells = <1>;
             #size-cells = <1>;
             status = "disabled";
@@ -265,7 +265,7 @@
             compatible = "hpmicro,hpm-dmav2";
             dma-channels = <8>;
             dma-requests = <116>;
-            reg = <0xf3048000 0x4000>,
+            reg = <0xf3008000 0x4000>,
                 <0xf00c4000 0x4000>; /* DMAMUX base */
             interrupts = <99 1>;
             interrupt-parent = <&plic>;
