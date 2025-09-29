@@ -17,6 +17,8 @@ manifest:
       url-base: https://gitee.com/hpmicro
     - name: cherry-embedded
       url-base: https://gitee.com/sakumisu
+    - name: gitee-zephyr
+      url-base: https://gitee.com/zephyr-rtos
 
   defaults:
     remote: gitee
@@ -28,7 +30,6 @@ manifest:
       import:
         name-allowlist:
           - west-commands
-          - mbedtls
     - name: sdk_env
       repo-path: sdk_env
       path: sdk_env
@@ -51,6 +52,13 @@ manifest:
       repo-path: mcuboot
       revision: 97699e0df63825ad29b8d78beccf1c93e45c97bb
       path: bootloader/mcuboot
+    - name: mbedtls
+      repo-path: mbedtls
+      revision: 2f24831ee13d399ce019c4632b0bcd440a713f7c
+      path: modules/crypto/mbedtls
+      groups:
+        - crypto
+      remote: gitee-zephyr
 
   # West-related configuration for the sdk_glue repository.
   self:
