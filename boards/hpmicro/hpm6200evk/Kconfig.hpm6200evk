@@ -1,0 +1,5 @@
+# Copyright (c) 2025 HPMicro
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_HPM6200EVK
+	select SOC_HPM6280

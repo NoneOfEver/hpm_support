@@ -1,0 +1,19 @@
+# Copyright (c) 2025 HPMicro
+# SPDX-License-Identifier: Apache-2.0
+config SOC_SERIES_HPM6200
+	bool
+	select SOC_FAMILY_HPM
+	select HAS_HPMSDK_PLLCTL
+	select HAS_HPMSDK_PCFG
+	help
+	  Enable support for HPMicro HPM62 series SoC
+
+config SOC_SERIES
+	default "HPM6200" if SOC_SERIES_HPM6200
+
+config SOC_HPM6280
+	bool
+	select SOC_SERIES_HPM6200
+
+config SOC
+	default "HPM6280" if SOC_HPM6280
