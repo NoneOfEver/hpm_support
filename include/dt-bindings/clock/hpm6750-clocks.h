@@ -10,7 +10,7 @@
  *
  *<---------------------- AUTO_GENERATE ---------------------->
  *    This file was auto-generated, do not edit anything.
- *    generated on 2025-08-04 16:09:58 
+ *    generated on 2025-10-20 16:16:33 
  */
 
 #define CLK_SRC_OSC24M  0
