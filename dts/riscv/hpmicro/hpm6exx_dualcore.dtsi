@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HPMicro
+ * Copyright 2025 HPMicro
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -25,13 +25,21 @@
 	};
 
 	soc {
-		core1_ilm_slv: memory@1000000 {
-			reg = <0x1180000 DT_SIZE_K(256)>;
+		core1_ilm: memory@40000 {
+			reg = <0x40000 DT_SIZE_K(256)>;
 		};
 
-		core1_dlm_slv: memory@1040000 {
-			reg = <0x11C0000 DT_SIZE_K(256)>;
+		core1_dlm: memory@240000 {
+			reg = <0x240000 DT_SIZE_K(256)>;
 		};
+
+        core1_ilm_als: memory@1300000 {
+            reg = <0x1300000 DT_SIZE_K(256)>;
+        };
+
+        core1_dlm_als: memory@1340000 {
+            reg = <0x1340000 DT_SIZE_K(256)>;
+        };
 	};
 };
 

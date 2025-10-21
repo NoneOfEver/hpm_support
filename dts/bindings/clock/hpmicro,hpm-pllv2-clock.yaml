@@ -3,7 +3,7 @@
 
 description: HPMicro PLL version 2.
 
-compatible: "hpmicro,hpm-pllv2"
+compatible: "hpmicro,hpm-pllv2-clock"
 
 include: [clock-controller.yaml, base.yaml]
 

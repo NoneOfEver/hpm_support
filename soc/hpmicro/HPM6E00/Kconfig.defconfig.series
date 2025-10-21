@@ -38,7 +38,7 @@ config MAX_IRQ_PER_AGGREGATOR
 	default 127
 
 config NUM_IRQS
-	default 140
+	default 256
 
 source "${ZEPHYR_SDK_GLUE_MODULE_DIR}/soc/hpmicro/HPM6E00/Kconfig.defconfig.HPM6E*"
 

@@ -1,14 +1,12 @@
 /*
- * Copyright 2023-2025 HPMicro
+ * Copyright 2025 HPMicro
  * SPDX-License-Identifier: Apache-2.0
  */
 
 /dts-v1/;
 #include <zephyr/dt-bindings/gpio/gpio.h>
 #include <zephyr/dt-bindings/i2c/i2c.h>
-#include <zephyr/dt-bindings/pwm/pwm.h>
-#include <dt-bindings/pwm/hpmicro-pwm-common.h>
-#include <dt-bindings/clock/hpm6750-clocks.h>
+#include <dt-bindings/clock/hpm6e80-clocks.h>
 #include <mem.h>
 #include <freq.h>
 
@@ -49,110 +47,104 @@
 
         pll0: pll0 {
             #clock-cells = <2>;
-            compatible = "hpmicro,hpm-pll-clock";
-            pll-frequency = <DT_FREQ_M(648)>;
+            compatible = "hpmicro,hpm-pllv2-clock";
+            pll-frequency = <DT_FREQ_M(600)>;
             pll-index = <0>;
 
             clk0 {
                 src-name = <CLK_SRC_PLL0_CLK0>;
                 div-i = <0>;
-                div-p = <2>;
+                div-p = <0>;
+            };
+
+            clk1 {
+                src-name = <CLK_SRC_PLL0_CLK1>;
+                div-i = <1>;
+                div-p = <1>;
             };
         };
 
         pll1: pll1 {
             #clock-cells = <2>;
-            compatible = "hpmicro,hpm-pll-clock";
+            compatible = "hpmicro,hpm-pllv2-clock";
             pll-frequency = <DT_FREQ_M(800)>;
             pll-index = <1>;
 
             clk0 {
                 src-name = <CLK_SRC_PLL1_CLK0>;
                 div-i = <0>;
-                div-p = <3>;
+                div-p = <0>;
             };
 
             clk1 {
                 src-name = <CLK_SRC_PLL1_CLK1>;
                 div-i = <1>;
-                div-p = <2>;
+                div-p = <7>;
+            };
+
+            clk2 {
+                src-name = <CLK_SRC_PLL1_CLK2>;
+                div-i = <2>;
+                div-p = <11>;
             };
         };
 
         pll2: pll2 {
             #clock-cells = <2>;
-            compatible = "hpmicro,hpm-pll-clock";
-            pll-frequency = <DT_FREQ_M(1000)>;
+            compatible = "hpmicro,hpm-pllv2-clock";
+            pll-frequency = <DT_FREQ_K(722534)>;
             pll-index = <2>;
 
             clk0 {
                 src-name = <CLK_SRC_PLL2_CLK0>;
                 div-i = <0>;
-                div-p = <3>;
+                div-p = <2>;
             };
 
             clk1 {
                 src-name = <CLK_SRC_PLL2_CLK1>;
                 div-i = <1>;
-                div-p = <4>;
+                div-p = <3>;
             };
-        };
-
-        pll3: pll3 {
-            #clock-cells = <2>;
-            compatible = "hpmicro,hpm-pll-clock";
-            pll-frequency = <614400000>;
-            pll-index = <3>;
-
-            clk0 {
-                src-name = <CLK_SRC_PLL3_CLK0>;
-                div-i = <0>;
-                div-p = <1>;
-            };
-        };
-
-        pll4: pll4 {
-            #clock-cells = <2>;
-            compatible = "hpmicro,hpm-pll-clock";
-            pll-frequency = <DT_FREQ_M(594)>;
-            pll-index = <4>;
-
-            clk0 {
-                src-name = <CLK_SRC_PLL4_CLK0>;
-                div-i = <0>;
-                div-p = <1>;
-            };
-        };
-
-        clk_axi: clk_axi {
-            #clock-cells = <2>;
-            compatible = "hpmicro,hpm-second-clock";
-            node-name = <CLOCK_AXI0>;
-            clocks = <&pll1 1 2>;
-            status = "disabled";
         };
 
         clk_axic: clk_axic {
             #clock-cells = <2>;
             compatible = "hpmicro,hpm-second-clock";
-            node-name = <CLOCK_AXI1>;
-            clocks = <&pll1 1 2>;
+            node-name = <CLOCK_AXIC>;
+            clocks = <&pll1 0 4>;
             status = "disabled";
         };
 
-        clk_axiv: clk_axiv {
+        clk_axif: clk_axif {
             #clock-cells = <2>;
             compatible = "hpmicro,hpm-second-clock";
-            node-name = <CLOCK_AXI2>;
-            clocks = <&pll1 1 2>;
+            node-name = <CLOCK_AXIF>;
+            clocks = <&pll1 0 4>;
             status = "disabled";
         };
 
-        clk_ahb: clk_ahb {
+        clk_axin: clk_axin {
             #clock-cells = <2>;
             compatible = "hpmicro,hpm-second-clock";
-            node-name = <CLOCK_AHB>;
-            clocks = <&pll1 1 2>;
+            node-name = <CLOCK_AXIN>;
+            clocks = <&pll1 0 8>;
+            status = "disabled";
+        };
+
+        clk_axis: clk_axis {
+            #clock-cells = <2>;
+            compatible = "hpmicro,hpm-second-clock";
+            node-name = <CLOCK_AXIS>;
+            clocks = <&pll1 0 4>;
+            status = "disabled";
+        };
+
+        clk_ahb0: clk_ahb0 {
+            #clock-cells = <2>;
+            compatible = "hpmicro,hpm-second-clock";
+            node-name = <CLOCK_AHB0>;
+            clocks = <&pll1 0 4>;
             status = "disabled";
         };
 
@@ -160,7 +152,7 @@
             #clock-cells = <2>;
             compatible = "hpmicro,hpm-second-clock";
             node-name = <CLOCK_ANA0>;
-            clocks = <&pll1 1 2>;
+            clocks = <&pll1 0 4>;
             status = "disabled";
         };
 
@@ -168,7 +160,7 @@
             #clock-cells = <2>;
             compatible = "hpmicro,hpm-second-clock";
             node-name = <CLOCK_ANA1>;
-            clocks = <&pll1 1 2>;
+            clocks = <&pll1 0 4>;
             status = "disabled";
         };
 
@@ -176,7 +168,15 @@
             #clock-cells = <2>;
             compatible = "hpmicro,hpm-second-clock";
             node-name = <CLOCK_ANA2>;
-            clocks = <&pll1 1 2>;
+            clocks = <&pll1 0 4>;
+            status = "disabled";
+        };
+
+        clk_ana3: clk_ana3 {
+            #clock-cells = <2>;
+            compatible = "hpmicro,hpm-second-clock";
+            node-name = <CLOCK_ANA3>;
+            clocks = <&pll1 0 4>;
             status = "disabled";
         };
 
@@ -184,7 +184,7 @@
             #clock-cells = <2>;
             compatible = "hpmicro,hpm-second-clock";
             node-name = <CLOCK_AUD0>;
-            clocks = <&pll3 0 25>;
+            clocks = <&pll2 0 21>;
             status = "disabled";
         };
 
@@ -192,15 +192,7 @@
             #clock-cells = <2>;
             compatible = "hpmicro,hpm-second-clock";
             node-name = <CLOCK_AUD1>;
-            clocks = <&pll3 0 25>;
-            status = "disabled";
-        };
-
-        clk_aud2: clk_aud2 {
-            #clock-cells = <2>;
-            compatible = "hpmicro,hpm-second-clock";
-            node-name = <CLOCK_AUD2>;
-            clocks = <&pll3 0 25>;
+            clocks = <&pll2 0 21>;
             status = "disabled";
         };
     };
@@ -208,13 +200,13 @@
     soc {
         #address-cells = <1>;
         #size-cells = <1>;
-        compatible = "hpmicro,hpm6750";
+        compatible = "hpmicro,hpm6e80";
         ranges;
 
         clk: clock-controller@f4100000 {
             compatible = "hpmicro,hpm-clock";
             reg = <0xf4000000 DT_SIZE_K(256)
-                0xf4100000 DT_SIZE_K(256)>;
+                0xf40c0000 DT_SIZE_K(256)>;
             reg-names = "sysctl", "pll";
             status = "okay";
             #clock-cells = <3>;
@@ -228,37 +220,31 @@
 
         dlm: memory@80000 {
             compatible = "zephyr,memory-region";
-            reg = <0x080000 DT_SIZE_K(256)>;
+            reg = <0x0200000 DT_SIZE_K(256)>;
             zephyr,memory-region = "DTCM";
         };
 
-        core0_ilm_slv: memory@1000000 {
-            reg = <0x1000000 DT_SIZE_K(256)>;
+        core0_ilm_slv: memory@1180000 {
+            reg = <0x1180000 DT_SIZE_K(256)>;
         };
 
-        core0_dlm_slv: memory@1040000 {
-            reg = <0x1040000 DT_SIZE_K(256)>;
+        core0_dlm_slv: memory@11c0000 {
+            reg = <0x11c0000 DT_SIZE_K(256)>;
         };
 
-        sram: memory@1080000 {
+        sram: memory@1200000 {
             compatible = "mmio-sram";
-            reg = <0x01080000 DT_SIZE_K(768)>;
+            reg = <0x01200000 DT_SIZE_K(1024)>;
         };
 
-        ahb_sram: memory@f0300000 {
+        ahb_sram: memory@f0200000 {
             compatible = "zephyr,memory-region";
-            reg = <0xf0300000 DT_SIZE_K(32)>;
+            reg = <0xf0200000 DT_SIZE_K(32)>;
             zephyr,memory-region = "AHB_SRAM";
         };
 
-        apb_sram: memory@f40f0000 {
-            compatible = "zephyr,memory-region";
-            reg = <0xf4130000 DT_SIZE_K(8)>;
-            zephyr,memory-region = "APB_SRAM";
-        };
-
-        share_ram: memory@117c000 {
-            reg = <0x117c000 DT_SIZE_K(16)>;
+        share_ram: memory@012fc000 {
+            reg = <0x012fc000 DT_SIZE_K(16)>;
         };
 
         plic: interrupt-controller@e4000000 {
@@ -280,134 +266,230 @@
             #address-cells = <1>;
             #interrupt-cells = <2>;
             interrupt-controller;
-            reg = <0xe6400000 0x00400000>;
+            reg = <0xe6400000 DT_SIZE_M(4)>;
             interrupts-extended = <&cpu0_intc 3>;
         };
 
         mtimer: machine-timer@e6000000 {
             compatible = "andestech,machine-timer";
             reg = <0xe6000000 0x1
-            0xe6000008 0x1>;
+            0xe6000008 DT_SIZE_M(1)>;
             interrupts-extended = <&cpu0_intc 7>;
         };
 
-        fgpio: fgpio@c0000 {
-            reg = <0xc0000 0x2000>;
+        fgpio: fgpio@300000 {
+            reg = <0x300000 DT_SIZE_K(16)>;
         };
 
-        xpi0: xpi@f3040000 {
+        xpi0: xpi@f3000000 {
             compatible = "hpmicro,xpi";
-            reg = <0xf3040000 DT_SIZE_K(16)>;
+            reg = <0xf3000000 DT_SIZE_K(16)>;
             #address-cells = <1>;
             #size-cells = <1>;
             status = "disabled";
         };
 
-        xpi1: xpi@f3044000 {
-            compatible = "hpmicro,xpi";
-            reg = <0xf3044000 DT_SIZE_K(16)>;
-            status = "disabled";
-        };
-
-        gpio0: peripheral@f0000000 {
+        gpio0: peripheral@f00d0000 {
             #address-cells = <1>;
             #size-cells = <1>;
-            ranges = <0x0 0xf0000000 0x4000>;
+            ranges = <0x0 0xf00d0000 DT_SIZE_K(16)>;
         };
 
-        gpio1: peripheral@f0004000 {
+        gpio1: peripheral@f00d4000 {
             #address-cells = <1>;
             #size-cells = <1>;
-            ranges = <0x0 0xf0004000 0x4000>;
+            ranges = <0x0 0xf00d4000 DT_SIZE_K(16)>;
+        };
+
+        gpiom: peripheral@f00d8000 { 
+            #address-cells = <1>;
+            #size-cells = <1>;
+            ranges = <0x0 0xf00d8000 DT_SIZE_K(16)>;
         };
 
         uart0: serial@f0040000 {
             compatible = "hpmicro,hpm-uart";
-            reg = <0xf0040000 0x1000>;
-            interrupts = <31 1>, <64 1>;
+            reg = <0xf0040000 DT_SIZE_K(16)>;
+            interrupts = <31 1>, <27 1>;
             interrupt-names = "uart", "idletimer";
-            clocks = <&clk CLOCK_UART0 CLK_SRC_OSC24M 1>;
+            clocks = <&clk CLOCK_UART0 CLK_SRC_PLL1_CLK0 10>;
             interrupt-parent = <&plic>;
             status = "disabled";
         };
 
-        uart13: serial@f0074000 {
+        uart1: serial@f0044000 {
             compatible = "hpmicro,hpm-uart";
-            reg = <0xf0074000 0x1000>;
-            interrupts = <44 1>, <65 1>;
+            reg = <0xf0044000 DT_SIZE_K(16)>;
+            interrupts = <32 1>, <27 1>;
             interrupt-names = "uart", "idletimer";
-            clocks = <&clk CLOCK_UART13 CLK_SRC_OSC24M 1>;
+            clocks = <&clk CLOCK_UART1 CLK_SRC_PLL1_CLK0 10>;
+            interrupt-parent = <&plic>;
+            status = "disabled";
+        };
+
+        uart2: serial@f0048000 {
+            compatible = "hpmicro,hpm-uart";
+            reg = <0xf0048000 DT_SIZE_K(16)>;
+            interrupts = <33 1>, <27 1>;
+            interrupt-names = "uart", "idletimer";
+            clocks = <&clk CLOCK_UART2 CLK_SRC_PLL1_CLK0 10>;
+            interrupt-parent = <&plic>;
+            status = "disabled";
+        };
+
+        uart3: serial@f004c000 {
+            compatible = "hpmicro,hpm-uart";
+            reg = <0xf004c000 DT_SIZE_K(16)>;
+            interrupts = <34 1>, <27 1>;
+            interrupt-names = "uart", "idletimer";
+            clocks = <&clk CLOCK_UART3 CLK_SRC_PLL1_CLK0 10>;
+            interrupt-parent = <&plic>;
+            status = "disabled";
+        };
+
+        uart4: serial@f0050000 {
+            compatible = "hpmicro,hpm-uart";
+            reg = <0xf0050000 DT_SIZE_K(16)>;
+            interrupts = <35 1>, <27 1>;
+            interrupt-names = "uart", "idletimer";
+            clocks = <&clk CLOCK_UART4 CLK_SRC_PLL1_CLK0 10>;
+            interrupt-parent = <&plic>;
+            status = "disabled";
+        };
+
+        uart5: serial@f0054000 {
+            compatible = "hpmicro,hpm-uart";
+            reg = <0xf0054000 DT_SIZE_K(16)>;
+            interrupts = <36 1>, <27 1>;
+            interrupt-names = "uart", "idletimer";
+            clocks = <&clk CLOCK_UART5 CLK_SRC_PLL1_CLK0 10>;
+            interrupt-parent = <&plic>;
+            status = "disabled";
+        };
+
+        uart6: serial@f0058000 {
+            compatible = "hpmicro,hpm-uart";
+            reg = <0xf0058000 DT_SIZE_K(16)>;
+            interrupts = <37 1>, <27 1>;
+            interrupt-names = "uart", "idletimer";
+            clocks = <&clk CLOCK_UART6 CLK_SRC_PLL1_CLK0 10>;
+            interrupt-parent = <&plic>;
+            status = "disabled";
+        };
+
+        uart7: serial@f005c000 {
+            compatible = "hpmicro,hpm-uart";
+            reg = <0xf005c000 DT_SIZE_K(16)>;
+            interrupts = <38 1>, <27 1>;
+            interrupt-names = "uart", "idletimer";
+            clocks = <&clk CLOCK_UART7 CLK_SRC_PLL1_CLK0 10>;
             interrupt-parent = <&plic>;
             status = "disabled";
         };
 
         pinctrl: pin-controller@f4040000 {
             compatible = "hpmicro,hpm-pinctrl";
-            reg = <0xf4040000 0x4000>;
+            reg = <0xf4040000 DT_SIZE_K(256)>;
             status = "okay";
         };
 
-        pinctrl_pioc: pin-controller@f40d8000 {
+        pinctrl_pioc: pin-controller@f4118000 {
             compatible = "hpmicro,hpm-pinctrl";
-            reg = <0xf40d8000 0x4000>;
+            reg = <0xf4118000 DT_SIZE_K(16)>;
             status = "okay";
         };
 
-        pinctrl_bioc: pin-controller@f5010000 {
+        pinctrl_bioc: pin-controller@f4210000 {
             compatible = "hpmicro,hpm-pinctrl";
-            reg = <0xf5010000 0x4000>;
+            reg = <0xf4210000 DT_SIZE_K(16)>;
             status = "okay";
         };
 
-        pwm0: pwm@f0200000 {
-            compatible = "hpmicro,hpm-pwm";
-            reg = <0xf0200000 0x10000>;
-            clocks = <&clk CLOCK_MOT0 CLOCK_AHB 1>;
+        pwm0: pwm@f0420000 {
+            compatible = "hpmicro,hpm-pwmv2";
+            reg = <0xf0420000 DT_SIZE_K(16)>;
+            clocks = <&clk CLOCK_MOT0 CLOCK_AHB0 1>;
             status = "disabled";
             #pwm-cells = <3>;
         };
 
-        pwm1: pwm@f0210000 {
-            compatible = "hpmicro,hpm-pwm";
-            reg = <0xf0210000 0x10000>;
-            clocks = <&clk CLOCK_MOT1 CLOCK_AHB 1>;
+        pwm1: pwm@f0424000 {
+            compatible = "hpmicro,hpm-pwmv2";
+            reg = <0xf0424000 DT_SIZE_K(16)>;
+            clocks = <&clk CLOCK_MOT0 CLOCK_AHB0 1>;
             status = "disabled";
             #pwm-cells = <3>;
         };
 
-        pwm2: pwm@f0220000 {
-            compatible = "hpmicro,hpm-pwm";
-            reg = <0xf0220000 0x10000>;
-            clocks = <&clk CLOCK_MOT2 CLOCK_AHB 1>;
+        pwm2: pwm@f0428000 {
+            compatible = "hpmicro,hpm-pwmv2";
+            reg = <0xf0428000 DT_SIZE_K(16)>;
+            clocks = <&clk CLOCK_MOT0 CLOCK_AHB0 1>;
             status = "disabled";
             #pwm-cells = <3>;
         };
 
-        pwm3: pwm@f0230000 {
-            compatible = "hpmicro,hpm-pwm";
-            reg = <0xf0230000 0x10000>;
-            clocks = <&clk CLOCK_MOT3 CLOCK_AHB 1>;
+        pwm3: pwm@f042c000 {
+            compatible = "hpmicro,hpm-pwmv2";
+            reg = <0xf042c000 DT_SIZE_K(16)>;
+            clocks = <&clk CLOCK_MOT0 CLOCK_AHB0 1>;
             status = "disabled";
             #pwm-cells = <3>;
         };
 
-        i2c0: i2c@f3020000 {
+        i2c0: i2c@f0060000 {
             compatible = "hpmicro,hpm-i2c";
             #address-cells = <1>;
             #size-cells = <0>;
-            clocks = <&clk CLOCK_I2C0 CLK_SRC_OSC24M 1>;
+            clocks = <&clk CLOCK_I2C0 CLK_SRC_PLL1_CLK0 10>;
             clock-frequency = <I2C_BITRATE_STANDARD>;
-            reg = <0xf3020000 0x4000>;
-            interrupts = <68 1>;
+            reg = <0xf0060000 DT_SIZE_K(16)>;
+            interrupts = <39 1>;
             interrupt-parent = <&plic>;
             status = "disabled";
         };
 
-        spi0: spi@f0030000 {
+        i2c1: i2c@f0064000 {
+            compatible = "hpmicro,hpm-i2c";
+            #address-cells = <1>;
+            #size-cells = <0>;
+            clocks = <&clk CLOCK_I2C1 CLK_SRC_PLL1_CLK0 10>;
+            clock-frequency = <I2C_BITRATE_STANDARD>;
+            reg = <0xf0064000 DT_SIZE_K(16)>;
+            interrupts = <40 1>;
+            interrupt-parent = <&plic>;
+            status = "disabled";
+        };
+
+        i2c2: i2c@f0068000 {
+            compatible = "hpmicro,hpm-i2c";
+            #address-cells = <1>;
+            #size-cells = <0>;
+            clocks = <&clk CLOCK_I2C2 CLK_SRC_PLL1_CLK0 10>;
+            clock-frequency = <I2C_BITRATE_STANDARD>;
+            reg = <0xf0068000 DT_SIZE_K(16)>;
+            interrupts = <41 1>;
+            interrupt-parent = <&plic>;
+            status = "disabled";
+        };
+
+        i2c3: i2c@f006c000 {
+            compatible = "hpmicro,hpm-i2c";
+            #address-cells = <1>;
+            #size-cells = <0>;
+            clocks = <&clk CLOCK_I2C3 CLK_SRC_PLL1_CLK0 10>;
+            clock-frequency = <I2C_BITRATE_STANDARD>;
+            reg = <0xf006c000 DT_SIZE_K(16)>;
+            interrupts = <42 1>;
+            interrupt-parent = <&plic>;
+            status = "disabled";
+        };
+
+        spi0: spi@f0070000 {
             compatible = "hpmicro,hpm-spi";
-            reg = <0xf0030000 0x4000>;
-            clocks = <&clk CLOCK_SPI0 CLK_SRC_PLL1_CLK1 8>;
-            interrupts = <27 1>;
+            reg = <0xf0070000 DT_SIZE_K(16)>;
+            clocks = <&clk CLOCK_SPI0 CLK_SRC_PLL1_CLK0 10>;
+            interrupts = <43 1>;
             interrupt-parent = <&plic>;
             status = "disabled";
             #address-cells = <1>;
@@ -416,11 +498,11 @@
             cs-minimum-high-time = <11>;
         };
 
-        spi1: spi@f0034000 {
+        spi1: spi@f0074000 {
             compatible = "hpmicro,hpm-spi";
-            reg = <0xf0034000 0x4000>;
-            clocks = <&clk CLOCK_SPI1 CLK_SRC_PLL1_CLK1 8>;
-            interrupts = <28 1>;
+            reg = <0xf0074000 DT_SIZE_K(16)>;
+            clocks = <&clk CLOCK_SPI1 CLK_SRC_PLL1_CLK0 10>;
+            interrupts = <44 1>;
             interrupt-parent = <&plic>;
             status = "disabled";
             #address-cells = <1>;
@@ -429,11 +511,11 @@
             cs-minimum-high-time = <11>;
         };
 
-        spi2: spi@f0038000 {
+        spi2: spi@f0078000 {
             compatible = "hpmicro,hpm-spi";
-            reg = <0xf0038000 0x4000>;
-            clocks = <&clk CLOCK_SPI2 CLK_SRC_PLL1_CLK1 8>;
-            interrupts = <29 1>;
+            reg = <0xf0078000 DT_SIZE_K(16)>;
+            clocks = <&clk CLOCK_SPI2 CLK_SRC_PLL1_CLK0 10>;
+            interrupts = <45 1>;
             interrupt-parent = <&plic>;
             status = "disabled";
             #address-cells = <1>;
@@ -443,11 +525,11 @@
         };
 
 
-        spi3: spi@f003c000 {
+        spi3: spi@f007c000 {
             compatible = "hpmicro,hpm-spi";
-            reg = <0xf003c000 0x4000>;
-            clocks = <&clk CLOCK_SPI3 CLK_SRC_PLL1_CLK1 8>;
-            interrupts = <30 1>;
+            reg = <0xf007c000 DT_SIZE_K(16)>;
+            clocks = <&clk CLOCK_SPI3 CLK_SRC_PLL1_CLK0 10>;
+            interrupts = <46 1>;
             interrupt-parent = <&plic>;
             status = "disabled";
             #address-cells = <1>;
@@ -456,205 +538,113 @@
             cs-minimum-high-time = <11>;
         };
 
-        i2c1: i2c@f3024000 {
-            compatible = "hpmicro,hpm-i2c";
-            #address-cells = <1>;
-            #size-cells = <0>;
-            clocks = <&clk CLOCK_I2C1 CLK_SRC_OSC24M 1>;
-            clock-frequency = <I2C_BITRATE_STANDARD>;
-            reg = <0xf3024000 0x4000>;
-            interrupts = <69 1>;
+        spi7: spi@f01bc000 {
+            compatible = "hpmicro,hpm-spi";
+            reg = <0xf01bc000 DT_SIZE_K(16)>;
+            clocks = <&clk CLOCK_SPI7 CLK_SRC_PLL1_CLK0 10>;
+            interrupts = <89 1>;
             interrupt-parent = <&plic>;
             status = "disabled";
-        };
-
-        i2c2: i2c@f3028000 {
-            compatible = "hpmicro,hpm-i2c";
             #address-cells = <1>;
             #size-cells = <0>;
-            clocks = <&clk CLOCK_I2C2 CLK_SRC_OSC24M 1>;
-            clock-frequency = <I2C_BITRATE_STANDARD>;
-            reg = <0xf3028000 0x4000>;
-            interrupts = <70 1>;
-            interrupt-parent = <&plic>;
-            status = "disabled";
+            cs-sck-delay = <3>;
+            cs-minimum-high-time = <11>;
         };
 
-        i2c3: i2c@f302c000 {
-            compatible = "hpmicro,hpm-i2c";
-            #address-cells = <1>;
-            #size-cells = <0>;
-            clocks = <&clk CLOCK_I2C3 CLK_SRC_OSC24M 1>;
-            clock-frequency = <I2C_BITRATE_STANDARD>;
-            reg = <0xf302c000 0x4000>;
-            interrupts = <71 1>;
-            interrupt-parent = <&plic>;
-            status = "disabled";
-        };
-
-        hdma: hdma@f00c4000 {
+        hdma: hdma@f00c8000 {
             #dma-cells = <2>;
-            compatible = "hpmicro,hpm-dma";
+            compatible = "hpmicro,hpm-dmav2";
             dma-channels = <8>;
             dma-requests = <116>;
-            reg = <0xf00c4000 0x4000>,
-                <0xf00c0000 0x4000>; /* DMAMUX base */
-            interrupts = <88 1>;
+            reg = <0xf00c8000 DT_SIZE_K(16)>,
+                <0xf00c4000 DT_SIZE_K(16)>; /* DMAMUX base */
+            interrupts = <56 1>;
             interrupt-parent = <&plic>;
             status = "disabled";
         };
 
-        xdma: xdma@f3048000 {
+        xdma: xdma@f3100000 {
             #dma-cells = <2>;
-            compatible = "hpmicro,hpm-dma";
+            compatible = "hpmicro,hpm-dmav2";
             dma-channels = <8>;
             dma-requests = <116>;
-            reg = <0xf3048000 0x4000>,
-                <0xf00c0000 0x4000>; /* DMAMUX base */
-            interrupts = <87 1>;
+            reg = <0xf3100000 DT_SIZE_K(16)>,
+                <0xf00c4000 DT_SIZE_K(16)>; /* DMAMUX base */
+            interrupts = <140 1>;
             interrupt-parent = <&plic>;
             status = "disabled";
         };
 
-        adc0: adc@f0010000 {
+        adc0: adc@f0100000 {
             compatible = "hpmicro,hpm-adc12";
-            reg = <0xf0010000 0x4000>;
-            interrupts = <19 1>;
+            reg = <0xf0100000 DT_SIZE_K(16)>;
+            interrupts = <58 1>;
             interrupt-parent = <&plic>;
-            clocks = <&clk CLOCK_ADC0 CLK_ADC_SRC_ANA0 1>, <&clk CLOCK_ANA0 CLK_SRC_PLL1_CLK1 2>;
+            clocks = <&clk CLOCK_ADC0 CLK_ADC_SRC_ANA0 1>, <&clk CLOCK_ANA0 CLK_SRC_PLL1_CLK0 4>;
             sample-time = <20>;
             status = "disabled";
             #io-channel-cells = <1>;
         };
 
-        adc1: adc@f0014000 {
+        adc1: adc@f0104000 {
             compatible = "hpmicro,hpm-adc12";
-            reg = <0xf0014000 0x4000>;
-            interrupts = <20 1>;
+            reg = <0xf0104000 DT_SIZE_K(16)>;
+            interrupts = <59 1>;
             interrupt-parent = <&plic>;
-            clocks = <&clk CLOCK_ADC1 CLK_ADC_SRC_ANA1 1>, <&clk CLOCK_ANA1 CLK_SRC_PLL1_CLK1 2>;
+            clocks = <&clk CLOCK_ADC1 CLK_ADC_SRC_ANA1 1>, <&clk CLOCK_ANA1 CLK_SRC_PLL1_CLK0 4>;
             sample-time = <20>;
             status = "disabled";
             #io-channel-cells = <1>;
         };
 
-        adc2: adc@f0018000 {
+        adc2: adc@f0108000 {
             compatible = "hpmicro,hpm-adc12";
-            reg = <0xf0018000 0x4000>;
-            interrupts = <21 1>;
+            reg = <0xf0108000 DT_SIZE_K(16)>;
+            interrupts = <60 1>;
             interrupt-parent = <&plic>;
-            clocks = <&clk CLOCK_ADC2 CLK_ADC_SRC_ANA2 1>, <&clk CLOCK_ANA2 CLK_SRC_PLL1_CLK1 2>;
+            clocks = <&clk CLOCK_ADC2 CLK_ADC_SRC_ANA2 1>, <&clk CLOCK_ANA2 CLK_SRC_PLL1_CLK0 4>;
             sample-time = <20>;
             status = "disabled";
             #io-channel-cells = <1>;
         };
 
-        adc3: adc@f001C000 {
+        adc3: adc@f010C000 {
             compatible = "hpmicro,hpm-adc16";
-            reg = <0xf001C000 0x4000>;
-            interrupts = <22 1>;
+            reg = <0xf010C000 DT_SIZE_K(16)>;
+            interrupts = <61 1>;
             interrupt-parent = <&plic>;
-            clocks = <&clk CLOCK_ADC3 CLK_ADC_SRC_ANA2 1>, <&clk CLOCK_ANA2 CLK_SRC_PLL1_CLK1 2>;
+            clocks = <&clk CLOCK_ADC3 CLK_ADC_SRC_ANA3 1>, <&clk CLOCK_ANA3 CLK_SRC_PLL1_CLK0 4>;
             sample-time = <20>;
             status = "disabled";
             #io-channel-cells = <1>;
         };
 
-        can0: can@f0080000 {
+        can0: can@f0030000 {
                 compatible = "hpmicro,hpm-can";
-                reg = <0xf0080000 0x4000>;
-                interrupts = <47 1>;
+                reg = <0xf0030000 DT_SIZE_K(16)>;
+                interrupts = <90 1>;
                 interrupt-parent = <&plic>;
-                clk-name = <20578347>;
-                clk-source = <3>;
-                clk-divider = <5>;
+                clk-name = <CLOCK_CAN0>;
+                clk-source = <CLK_SRC_PLL1_CLK0>;
+                clk-divider = <10>;
                 bus-speed = <500000>;
                 status = "disabled";
         };
 
-        display {
-            #address-cells = <1>;
-            #size-cells = <1>;
-
-            lcdc0: lcdc@f1000000 {
-                compatible = "hpmicro,hpm-lcdc";
-                id = <0>;
-                reg = <0xf1000000 DT_SIZE_K(16)>;
-                interrupts = <99 1>;
-                interrupt-parent = <&plic>;
-                clocks = <&clk CLK_PLL4CLK0 CLK_SRC_OSC24M 1>, <&clk CLOCK_DISPLAY CLK_SRC_PLL4_CLK0 10>;
-                clock-names = "pll", "lcdc";
-                status = "disabled";
-            };
-
-            rgb0: rgb {
-                compatible = "hpmicro,hpm-rgb";
-            };
-        };
-
-        camera0: camera0@f1008000 {
-            compatible = "hpmicro,hpm-camera";
-            clocks = <&clk CLOCK_CAMERA0 CLK_SRC_OSC24M 1>;
-            reg = <0xf1008000 0x4000>;
-            interrupts = <97 1>;
-            interrupt-parent = <&plic>;
-            status = "disabled";
-        };
-
-        camera1: camera1@f100c000 {
-            compatible = "hpmicro,hpm-camera";
-            clocks = <&clk CLOCK_CAMERA1 CLK_SRC_OSC24M 1>;
-            reg = <0xf100c000 0x4000>;
-            interrupts = <98 1>;
-            interrupt-parent = <&plic>;
-            status = "disabled";
-        };
-
-        sd: sdxc@f2034000 {
-            compatible = "hpmicro,hpm-sdhc";
-            reg = <0xf2034000 0x4000>;
-            interrupts = <111 1>;
-            interrupt-parent = <&plic>;
-            clk-name = <22609986>;
-            clk-source = <0>;
-            clk-divider = <63>;
-            max-bus-freq = <100000000>;
-            min-bus-freq = <400000>;
-            status = "disabled";
-        };
-
-        usb0: usb@f2020000 {
+        usb0: usb@f1420000 {
                 clk-name = <CLOCK_USB0>;
-                reg = <0xf2020000 0x4000>;
-                interrupts = <106 1>;
+                reg = <0xf1420000 DT_SIZE_K(16)>;
+                interrupts = <127 1>;
                 interrupt-parent = <&plic>;
                 num-bidir-endpoints = <8>;
                 status = "disabled";
         };
 
-        usb1: usb@f2024000 {
-                clk-name = <CLOCK_USB1>;
-                reg = <0xf2024000 0x4000>;
-                interrupts = <107 1>;
-                interrupt-parent = <&plic>;
-                num-bidir-endpoints = <8>;
-                status = "disabled";
-        };
-
-	eth0: eth@f2000000 {
+	eth0: eth@f1400000 {
             compatible = "hpmicro,hpm-eth";
-            clocks = <&clk CLOCK_ETH0 CLK_SRC_PLL2_CLK1 2>;
-            reg = <0xf2000000 0x4000>;
-            interrupts = <108 1>;
-            interrupt-parent = <&plic>;
-            status = "disabled";
-        };
-
-        eth1: eth@f2004000 {
-            compatible = "hpmicro,hpm-eth";
-            clocks = <&clk CLOCK_ETH1 CLK_SRC_PLL2_CLK1 5>;
-            reg = <0xf2004000 0x4000>;
-            interrupts = <109 1>;
+            clocks = <&clk CLOCK_ETH0 CLK_SRC_PLL1_CLK2 2>;
+            reg = <0xf1400000 DT_SIZE_K(16)>;
+            interrupts = <125 1>;
             interrupt-parent = <&plic>;
             status = "disabled";
         };
@@ -664,7 +654,7 @@
 &gpio0 {
     gpioa: gpio@0 {
         compatible = "hpmicro,hpm-gpio";
-        reg = <0x0 0x4000>;
+        reg = <0x0 DT_SIZE_K(16)>;
         gpio-controller;
         #gpio-cells = <2>;
         hpmicro-gpio-port = <0>;
@@ -674,7 +664,7 @@
 
     gpiob: gpio@1 {
         compatible = "hpmicro,hpm-gpio";
-        reg = <0x0 0x4000>;
+        reg = <0x0 DT_SIZE_K(16)>;
         gpio-controller;
         #gpio-cells = <2>;
         hpmicro-gpio-port = <1>;
@@ -684,7 +674,7 @@
 
     gpioc: gpio@2 {
         compatible = "hpmicro,hpm-gpio";
-        reg = <0x0 0x4000>;
+        reg = <0x0 DT_SIZE_K(16)>;
         gpio-controller;
         #gpio-cells = <2>;
         hpmicro-gpio-port = <2>;
@@ -694,7 +684,7 @@
 
     gpiod: gpio@3 {
         compatible = "hpmicro,hpm-gpio";
-        reg = <0x0 0x4000>;
+        reg = <0x0 DT_SIZE_K(16)>;
         gpio-controller;
         #gpio-cells = <2>;
         hpmicro-gpio-port = <3>;
@@ -704,7 +694,7 @@
 
     gpioe: gpio@4 {
         compatible = "hpmicro,hpm-gpio";
-        reg = <0x0 0x4000>;
+        reg = <0x0 DT_SIZE_K(16)>;
         gpio-controller;
         #gpio-cells = <2>;
         hpmicro-gpio-port = <4>;
@@ -714,7 +704,7 @@
 
     gpiof: gpio@5 {
         compatible = "hpmicro,hpm-gpio";
-        reg = <0x0 0x4000>;
+        reg = <0x0 DT_SIZE_K(16)>;
         gpio-controller;
         #gpio-cells = <2>;
         hpmicro-gpio-port = <5>;
@@ -722,35 +712,55 @@
         interrupt-parent = <&plic>;
     };
 
-    gpiox: gpio@7 {
+    gpiov: gpio@6 {
         compatible = "hpmicro,hpm-gpio";
-        reg = <0x0 0x4000>;
+        reg = <0x0 DT_SIZE_K(16)>;
         gpio-controller;
         #gpio-cells = <2>;
-        hpmicro-gpio-port = <13>;
-        interrupt-parent = <&plic>;
+        hpmicro-gpio-port = <6>;
         interrupts = <7 1>;
-        status = "disabled";
+        interrupt-parent = <&plic>;
     };
 
-    gpioy: gpio@8 {
+    gpiow: gpio@7 {
         compatible = "hpmicro,hpm-gpio";
-        reg = <0x0 0x4000>;
+        reg = <0x0 DT_SIZE_K(16)>;
         gpio-controller;
         #gpio-cells = <2>;
-        hpmicro-gpio-port = <14>;
+        hpmicro-gpio-port = <7>;
         interrupts = <8 1>;
         interrupt-parent = <&plic>;
+    };
+
+    gpiox: gpio@8 {
+        compatible = "hpmicro,hpm-gpio";
+        reg = <0x0 DT_SIZE_K(16)>;
+        gpio-controller;
+        #gpio-cells = <2>;
+        hpmicro-gpio-port = <8>;
+        interrupt-parent = <&plic>;
+        interrupts = <9 1>;
         status = "disabled";
     };
 
-    gpioz: gpio@9 {
+    gpioy: gpio@9 {
         compatible = "hpmicro,hpm-gpio";
-        reg = <0x0 0x4000>;
+        reg = <0x0 DT_SIZE_K(16)>;
         gpio-controller;
         #gpio-cells = <2>;
-        hpmicro-gpio-port = <15>;
-        interrupts = <9 1>;
+        hpmicro-gpio-port = <9>;
+        interrupts = <10 1>;
+        interrupt-parent = <&plic>;
+        status = "disabled";
+    };
+
+    gpioz: gpio@10 {
+        compatible = "hpmicro,hpm-gpio";
+        reg = <0x0 DT_SIZE_K(16)>;
+        gpio-controller;
+        #gpio-cells = <2>;
+        hpmicro-gpio-port = <10>;
+        interrupts = <11 1>;
         interrupt-parent = <&plic>;
         status = "disabled";
     };

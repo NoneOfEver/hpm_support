@@ -1,4 +1,4 @@
-# Copyright (c) 2023 HPMicro
+# Copyright (c) 2025 HPMicro
 # SPDX-License-Identifier: Apache-2.0
 
 zephyr_include_directories(.)

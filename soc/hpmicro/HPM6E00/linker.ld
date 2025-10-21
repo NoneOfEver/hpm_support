@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 HPMicro
+ * Copyright (c) 2025 HPMicro
  *
  * SPDX-License-Identifier: Apache-2.0
  *

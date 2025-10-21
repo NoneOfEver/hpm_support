@@ -14,7 +14,7 @@ endif()
 if(${BOARD} STREQUAL "hpm6e00evk")
     board_runner_args(openocd "--config=${OPENOCD_CONFIG_DIR}/probes/cmsis_dap.cfg"
                                     "--config=${OPENOCD_CONFIG_DIR}/soc/hpm6e80-single-core.cfg"
-                                "--config=${OPENOCD_CONFIG_DIR}/boards/hpm6e00vk.cfg"
+                                "--config=${OPENOCD_CONFIG_DIR}/boards/hpm6e00evk.cfg"
                                 "--openocd-search=${OPENOCD_CONFIG_DIR}")
     board_runner_args(openocd --target-handle=_CHIPNAME.cpu0)
 else()
