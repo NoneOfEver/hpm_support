@@ -3,7 +3,7 @@
 config SOC_SERIES_HPM6200
 	bool
 	select SOC_FAMILY_HPM
-	select HAS_HPMSDK_PLLCTL
+	select HAS_HPMSDK_PLLCTLV2
 	select HAS_HPMSDK_PCFG
 	help
 	  Enable support for HPMicro HPM62 series SoC

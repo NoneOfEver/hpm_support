@@ -17,14 +17,10 @@ supported:
   - spi
   - dma
   - pwm
-  - adc12
   - adc16
   - can
-  - cam
-  - sdxc
   - usbd
   - cherryusb
-  - enet
 testing:
   ignore_tags:
     - bluetooth

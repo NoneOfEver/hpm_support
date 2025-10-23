@@ -28,7 +28,7 @@ properties:
     const: 2
 
 clock-cells:
-  - pll-index
+  - clk-index
   - div
 
 child-binding:

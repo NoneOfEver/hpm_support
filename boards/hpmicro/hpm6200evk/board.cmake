@@ -12,9 +12,9 @@ if(NOT CONFIG_XIP)
 endif()
 
 if(${BOARD} STREQUAL "hpm6200evk")
-    board_runner_args(openocd "--config=${OPENOCD_CONFIG_DIR}/probes/cmsis_dap.cfg"
-                                    "--config=${OPENOCD_CONFIG_DIR}/soc/hpm6750-single-core.cfg"
-                                "--config=${OPENOCD_CONFIG_DIR}/boards/hpm6750evk2.cfg"
+    board_runner_args(openocd "--config=${OPENOCD_CONFIG_DIR}/probes/ft2232.cfg"
+                                    "--config=${OPENOCD_CONFIG_DIR}/soc/hpm6280-single-core.cfg"
+                                "--config=${OPENOCD_CONFIG_DIR}/boards/hpm6200evk.cfg"
                                 "--openocd-search=${OPENOCD_CONFIG_DIR}")
     board_runner_args(openocd --target-handle=_CHIPNAME.cpu0)
 else()

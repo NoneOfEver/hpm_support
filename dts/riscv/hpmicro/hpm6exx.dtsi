@@ -207,7 +207,7 @@
             compatible = "hpmicro,hpm-clock";
             reg = <0xf4000000 DT_SIZE_K(256)
                 0xf40c0000 DT_SIZE_K(256)>;
-            reg-names = "sysctl", "pll";
+            reg-names = "sysctl", "pllv2";
             status = "okay";
             #clock-cells = <3>;
         };
