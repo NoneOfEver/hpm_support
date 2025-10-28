@@ -519,13 +519,13 @@
             #io-channel-cells = <1>;
         };
 
-        can0: can@f0080000 {
-                compatible = "hpmicro,hpm-can";
-                reg = <0xf0080000 0x4000>;
-                interrupts = <47 1>;
+        mcan0: can@f0080000 {
+                compatible = "hpmicro,hpm-mcan";
+                reg = <0xf0080000 DT_SIZE_K(16)>;
+                interrupts = <37 1>;
                 interrupt-parent = <&plic>;
-                clk-name = <20578347>;
-                clk-source = <3>;
+                clk-name = <CLOCK_CAN0>;
+                clk-source = <CLK_SRC_PLL1_CLK0>;
                 clk-divider = <5>;
                 bus-speed = <500000>;
                 status = "disabled";

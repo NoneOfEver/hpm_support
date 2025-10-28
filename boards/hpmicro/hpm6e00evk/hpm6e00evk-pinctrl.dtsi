@@ -91,7 +91,7 @@
 		};
 	};
 
-	pinmux_can4: pinmux_can4 {
+	pinmux_mcan4: pinmux_mcan4 {
 		group0 {
 			pinmux = <HPMICRO_PINMUX(HPMICRO_PIN(HPMICRO_PORTZ, 0), IOC_TYPE_IOC, 0, 7)>,
 					 <HPMICRO_PINMUX(HPMICRO_PIN(HPMICRO_PORTZ, 1), IOC_TYPE_IOC, 0, 7)>,

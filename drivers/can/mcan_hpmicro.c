@@ -354,6 +354,8 @@ static int hpm_mcan_init(const struct device *dev)
 
     mcan_get_default_config(can, config);
 
+    clock_add_to_group(cfg->clock_name, 0);
+
     clock_set_source_divider(cfg->clock_name, cfg->clock_src, cfg->clock_div);
 
     /* Set Interrupt Enable Mask */
