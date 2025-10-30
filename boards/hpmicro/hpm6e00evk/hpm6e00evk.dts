@@ -169,9 +169,9 @@
 		status = "okay";
 		erase-block-size = <4096>;
 		write-block-size = <1>;
-		nor-cfg-opt-hdr = <0xfcf90002>;
+		nor-cfg-opt-hdr = <0xfcf90001>;
 		nor-cfg-opt-opt0 = <0x07>;
-		nor-cfg-opt-opt1 = <0xe>;
+		nor-cfg-opt-opt1 = <0x00>;
 
 		partitions {
 			compatible = "fixed-partitions";
