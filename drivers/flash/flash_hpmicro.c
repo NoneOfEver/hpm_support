@@ -141,6 +141,10 @@ static const struct flash_pages_layout flash_hpm_pages_layout[] = {
     {
         .pages_count = FIXED_PARTITION_SIZE(scratch_partition) / KB(4),
         .pages_size = KB(4)
+    },
+    {
+        .pages_count = FIXED_PARTITION_SIZE(storage_partition) / KB(4),
+        .pages_size = KB(4)
     }
 };
 

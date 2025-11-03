@@ -137,9 +137,9 @@
 		status = "okay";
 		erase-block-size = <4096>;
 		write-block-size = <1>;
-		nor-cfg-opt-hdr = <0xfcf90002>;
-		nor-cfg-opt-opt0 = <0x07>;
-		nor-cfg-opt-opt1 = <0xe>;
+		nor-cfg-opt-hdr = <0xfcf90001>;
+		nor-cfg-opt-opt0 = <0x05>;
+		nor-cfg-opt-opt1 = <0x1000>;
 
 		partitions {
 			compatible = "fixed-partitions";
@@ -164,6 +164,11 @@
 			scratch_partition: partition@343000 {
 				label = "image-scratch";
 				reg = <0x343000 DT_SIZE_K(128)>;
+			};
+
+			storage_partition: partition@363000 {
+				label = "storage";
+				reg = <0x363000 DT_SIZE_K(128)>;
 			};
 		};
 	};

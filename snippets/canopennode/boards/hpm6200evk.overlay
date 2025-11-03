@@ -5,6 +5,8 @@
 
 / {
 	aliases {
+        green-led = &led_g;
+		red-led = &led_r;
 	};
 	chosen {
         zephyr,canbus = &mcan0;
