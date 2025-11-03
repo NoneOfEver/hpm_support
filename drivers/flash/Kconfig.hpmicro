@@ -7,6 +7,7 @@ config FLASH_HPMICRO
 	bool "HPMicro FLASH driver"
 	default y
 	depends on DT_HAS_HPMICRO_XPI_ENABLED
+	depends on MCUBOOT
 	select HAS_HPMSDK_FLASH
 	select FLASH_HAS_DRIVER_ENABLED
 	select FLASH_HAS_PAGE_LAYOUT
