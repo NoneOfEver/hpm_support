@@ -5,13 +5,10 @@
  *
  */
 
-#define DT_DRV_COMPAT hpmicro_hpm_pwm
-
 #include <errno.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/drivers/clock_control.h>
 #include <soc.h>
-#include <hpm_pwm_drv.h>
 #include <zephyr/drivers/pinctrl.h>
 #include "hpm_clock_drv.h"
 #include "dt-bindings/pwm/hpmicro-pwm-common.h"
@@ -19,8 +16,23 @@
 
 LOG_MODULE_REGISTER(pwm_hpmicro, CONFIG_PWM_LOG_LEVEL);
 
+/* Support both PWM and PWMv2 */
+#if CONFIG_DT_HAS_HPMICRO_HPM_PWM_ENABLED && CONFIG_DT_HAS_HPMICRO_HPM_PWMV2_ENABLED
+#error "Cannot enable both PWM and PWMv2 in the same build"
+#elif CONFIG_DT_HAS_HPMICRO_HPM_PWM_ENABLED
+#include <hpm_pwm_drv.h>
+#define DT_DRV_COMPAT hpmicro_hpm_pwm
+#define HPM_PWM_BASE_TYPE PWM_Type
+#elif CONFIG_DT_HAS_HPMICRO_HPM_PWMV2_ENABLED  
+#include <hpm_pwmv2_drv.h>
+#define DT_DRV_COMPAT hpmicro_hpm_pwmv2
+#define HPM_PWM_BASE_TYPE PWMV2_Type  /* PWMv2 may use different type, adjust as needed */
+#else
+#error "No PWM peripheral enabled"
+#endif
+
 struct pwm_hpmicro_config {
-	PWM_Type *base;
+	HPM_PWM_BASE_TYPE *base;
 	uint32_t clock_name;
 	uint32_t period;
 	uint32_t dead_zone_in_half_cycle;
@@ -31,14 +43,16 @@ struct pwm_hpmicro_data {
 	uint32_t period_cycles[1];
 };
 
-static int hpmicro_pwm_set_cycles(const struct device *dev, uint32_t channel,
-			       uint32_t period_cycles, uint32_t pulse_cycles,
-			       pwm_flags_t flags)
+/* PWM version specific implementations */
+#if CONFIG_DT_HAS_HPMICRO_HPM_PWM_ENABLED
+static int hpmicro_pwm_v1_set_cycles(const struct device *dev, uint32_t channel,
+		       uint32_t period_cycles, uint32_t pulse_cycles,
+		       pwm_flags_t flags)
 {
 	const struct pwm_hpmicro_config *config = dev->config;
 	pwm_config_t pwm_config;
 	pwm_cmp_config_t cmp_config[2] = {0};
-	PWM_Type *pwm_base = config->base;
+	HPM_PWM_BASE_TYPE *pwm_base = config->base;
 	uint32_t rld = 0, xrld = 0, prld = 0;
 	uint32_t rld_cmp = 0, xrld_cmp = 0;
 	uint16_t i, j;
@@ -131,9 +145,162 @@ static int hpmicro_pwm_set_cycles(const struct device *dev, uint32_t channel,
 	pwm_issue_shadow_register_lock_event(pwm_base);
 	return 0;
 }
+#endif /* CONFIG_DT_HAS_HPMICRO_HPM_PWM_ENABLED */
 
-static int hpmicro_pwm_get_cycles_per_sec(const struct device *dev,
-				       uint32_t channel, uint64_t *cycles)
+#if CONFIG_DT_HAS_HPMICRO_HPM_PWMV2_ENABLED
+static int hpmicro_pwm_v2_set_cycles(const struct device *dev, uint32_t channel,
+		       uint32_t period_cycles, uint32_t pulse_cycles,
+		       pwm_flags_t flags)
+{
+	const struct pwm_hpmicro_config *config = dev->config;
+	HPM_PWM_BASE_TYPE *pwm_base = config->base;
+	uint32_t rld, xrld, prld, rld_cmp, xrld_cmp;
+	uint16_t i, j;
+	
+	if (channel > 7) {
+		return -ENOTSUP;
+	}
+	/* Calculate counter and cmp index based on channel
+	 * Channel 0,1 -> Counter 0, CMP 0-3
+	 * Channel 2,3 -> Counter 1, CMP 4-7
+	 * Channel 4,5 -> Counter 2, CMP 8-11
+	 * Channel 6,7 -> Counter 3, CMP 12-15
+	 */
+	pwm_counter_t counter = (pwm_counter_t)(channel >> 1);
+	uint8_t cmp_start_index = (channel >> 1) << 2;  /* counter * 4 */
+	uint8_t cmp_index1 = cmp_start_index + ((channel & 0x01) << 1);     /* +0/+2 for even/odd */
+	uint8_t cmp_index2 = cmp_index1 + 1;                                /* +1/+3 for even/odd */
+	
+	/* Shadow register allocation for PWMv2:
+	 * Each counter uses 5 shadow registers:
+	 * - Counter 0: shadows 0(reload), 1,2(ch0), 3,4(ch1)
+	 * - Counter 1: shadows 5(reload), 6,7(ch2), 8,9(ch3)  
+	 * - Counter 2: shadows 10(reload), 11,12(ch4), 13,14(ch5)
+	 * - Counter 3: shadows 15(reload), 16,17(ch6), 18,19(ch7)
+	 */
+	uint8_t shadow_reload = counter * 5;                                 /* 0, 5, 10, 15 */
+	uint8_t shadow_cmp1 = shadow_reload + 1 + ((channel & 0x01) << 1);  /* ch0:1, ch1:3 */
+	uint8_t shadow_cmp2 = shadow_cmp1 + 1;                              /* ch0:2, ch1:4 */
+
+	/* Handle polarity inversion */
+	bool invert_output = false;
+	if (flags == PWM_POLARITY_INVERTED) {
+		invert_output = true;
+	} else if (flags == PWM_POLARITY_NORMAL) {
+		invert_output = false;
+	} else {
+		return -ENOTSUP;
+	}
+
+	/* Calculate extended precision values for period and pulse */
+	if (period_cycles > 0xffffff) {
+		for (i = 1; i <= 16; i++) {
+			if ((period_cycles / (i + 1)) <= 0xffffff) {
+				rld = period_cycles / (i + 1);
+				xrld = i;
+				prld = (xrld << 24) | rld;
+				for (j = 0; j <= 16; j++) {
+					if (((period_cycles - pulse_cycles) / (j + 1)) <= 0xffffff) {
+						rld_cmp = (period_cycles - pulse_cycles) / (j + 1);
+						xrld_cmp = j;
+						break;
+					} else if (j >= 16) {
+						return -ENOTSUP;
+					}
+				}
+				break;
+			} else if (i >= 16) {
+				return -ENOTSUP;
+			}
+		}
+	} else {
+		rld = period_cycles;
+		xrld = 0;
+		prld = period_cycles;
+		rld_cmp = period_cycles - pulse_cycles;
+		xrld_cmp = 0;
+	}
+
+	/* Unlock shadow registers */
+	pwmv2_shadow_register_unlock(pwm_base);
+
+	/* Set reload value with extended precision */
+	pwmv2_set_shadow_val(pwm_base, shadow_reload, rld, xrld, false);
+	
+	/* Set compare values for PWMv2 edge-aligned mode 
+	* PWMv2 needs two compare values to generate one PWM waveform:
+	* - cmp1: rising edge (usually 0 for edge-aligned)  
+	* - cmp2: falling edge (duty cycle point)
+	*/
+	uint32_t cmp1_val = 0;  /* Rising edge at counter start */
+	uint32_t cmp2_val = rld_cmp;  /* Falling edge for duty cycle */
+	
+	pwmv2_set_shadow_val(pwm_base, shadow_cmp1, cmp1_val, 0, false);
+	pwmv2_set_shadow_val(pwm_base, shadow_cmp2, cmp2_val, xrld_cmp, false);
+
+	/* Configure counter (first time only or when period changes) */
+	pwmv2_counter_select_data_offset_from_shadow_value(pwm_base, counter, shadow_reload);
+	pwmv2_counter_burst_disable(pwm_base, counter);
+	pwmv2_set_reload_update_time(pwm_base, counter, pwm_reload_update_on_reload);
+
+	/* Configure compare sources for two CMP values */
+	pwmv2_select_cmp_source(pwm_base, cmp_index1, cmp_value_from_shadow_val, shadow_cmp1);
+	pwmv2_select_cmp_source(pwm_base, cmp_index2, cmp_value_from_shadow_val, shadow_cmp2);
+	pwmv2_cmp_update_trig_time(pwm_base, cmp_index1, pwm_shadow_register_update_on_reload);
+	pwmv2_cmp_update_trig_time(pwm_base, cmp_index2, pwm_shadow_register_update_on_reload);
+
+	/* Set output polarity */
+	if (invert_output) {
+		pwmv2_enable_output_invert(pwm_base, (pwm_channel_t)channel);
+	} else {
+		pwmv2_disable_output_invert(pwm_base, (pwm_channel_t)channel);
+	}
+
+	/* Set dead zone if configured */
+	if (config->dead_zone_in_half_cycle > 0) {
+		pwmv2_set_dead_area(pwm_base, (pwm_channel_t)channel, config->dead_zone_in_half_cycle);
+	}
+
+	/* Lock shadow registers to apply changes */
+	pwmv2_shadow_register_lock(pwm_base);
+
+	/* Handle four cmp mode for odd channels (1, 3, 5, 7) */
+	if (channel & 0x01) {
+		if (pwmv2_get_cmp_working_status(pwm_base, (pwm_channel_t)(channel - 1)) == 0xFFFFFF00) {
+			/* Odd channel - need to enable four_cmp for proper operation */
+			pwmv2_enable_four_cmp(pwm_base, (pwm_channel_t)(channel - 1));  /* Enable for even channel */
+		} else {
+			pwmv2_disable_four_cmp(pwm_base, (pwm_channel_t)(channel - 1));
+		}
+	} else {
+		/* Even channel - disable four cmp for normal PWM operation */
+		pwmv2_disable_four_cmp(pwm_base, (pwm_channel_t)channel);
+	}
+	/* Enable channel output */
+	pwmv2_channel_enable_output(pwm_base, (pwm_channel_t)channel);
+	
+	/* Enable and start counter */
+	pwmv2_enable_counter(pwm_base, counter);
+	pwmv2_start_pwm_output(pwm_base, counter);
+
+	return 0;
+}
+#endif /* CONFIG_DT_HAS_HPMICRO_HPM_PWMV2_ENABLED */
+
+static int hpmicro_pwm_set_cycles(const struct device *dev, uint32_t channel,
+		       uint32_t period_cycles, uint32_t pulse_cycles,
+		       pwm_flags_t flags)
+{
+#if CONFIG_DT_HAS_HPMICRO_HPM_PWM_ENABLED
+	return hpmicro_pwm_v1_set_cycles(dev, channel, period_cycles, pulse_cycles, flags);
+#elif CONFIG_DT_HAS_HPMICRO_HPM_PWMV2_ENABLED  
+	return hpmicro_pwm_v2_set_cycles(dev, channel, period_cycles, pulse_cycles, flags);
+#endif
+}
+
+#if CONFIG_DT_HAS_HPMICRO_HPM_PWM_ENABLED
+static int hpmicro_pwm_v1_get_cycles_per_sec(const struct device *dev,
+			       uint32_t channel, uint64_t *cycles)
 {
 	const struct pwm_hpmicro_config *config = dev->config;
 	uint32_t freqc;
@@ -143,13 +310,39 @@ static int hpmicro_pwm_get_cycles_per_sec(const struct device *dev,
 
 	return 0;
 }
+#endif /* CONFIG_DT_HAS_HPMICRO_HPM_PWM_ENABLED */
 
-static int pwm_hpmicro_init(const struct device *dev)
+#if CONFIG_DT_HAS_HPMICRO_HPM_PWMV2_ENABLED
+static int hpmicro_pwm_v2_get_cycles_per_sec(const struct device *dev,
+			       uint32_t channel, uint64_t *cycles)
+{
+	const struct pwm_hpmicro_config *config = dev->config;
+	uint32_t freqc;
+
+	freqc = clock_get_frequency(config->clock_name);
+	*cycles = freqc;
+
+	return 0;
+}
+#endif /* CONFIG_DT_HAS_HPMICRO_HPM_PWMV2_ENABLED */
+
+static int hpmicro_pwm_get_cycles_per_sec(const struct device *dev,
+			       uint32_t channel, uint64_t *cycles)
+{
+#if CONFIG_DT_HAS_HPMICRO_HPM_PWM_ENABLED
+	return hpmicro_pwm_v1_get_cycles_per_sec(dev, channel, cycles);
+#elif CONFIG_DT_HAS_HPMICRO_HPM_PWMV2_ENABLED  
+	return hpmicro_pwm_v2_get_cycles_per_sec(dev, channel, cycles);
+#endif
+}
+
+#if CONFIG_DT_HAS_HPMICRO_HPM_PWM_ENABLED
+static int pwm_hpmicro_v1_init(const struct device *dev)
 {
 	const struct pwm_hpmicro_config *config = dev->config;
 	pwm_config_t pwm_config;
 	uint32_t freqc;
-	PWM_Type *pwm_base = config->base;
+	HPM_PWM_BASE_TYPE *pwm_base = config->base;
 	int err;
 
 	err = pinctrl_apply_state(config->pincfg, PINCTRL_STATE_DEFAULT);
@@ -167,6 +360,36 @@ static int pwm_hpmicro_init(const struct device *dev)
 
 	return 0;
 }
+#endif /* CONFIG_DT_HAS_HPMICRO_HPM_PWM_ENABLED */
+
+#if CONFIG_DT_HAS_HPMICRO_HPM_PWMV2_ENABLED
+static int pwm_hpmicro_v2_init(const struct device *dev)
+{
+	const struct pwm_hpmicro_config *config = dev->config;
+	HPM_PWM_BASE_TYPE *pwm_base = config->base;
+	int err;
+
+	/* Apply pin configuration */
+	err = pinctrl_apply_state(config->pincfg, PINCTRL_STATE_DEFAULT);
+	if (err < 0) {
+		return err;
+	}
+
+	/* Deinitialize PWMv2 to reset to known state */
+	pwmv2_deinit(pwm_base);
+
+	return 0;
+}
+#endif /* CONFIG_DT_HAS_HPMICRO_HPM_PWMV2_ENABLED */
+
+static int pwm_hpmicro_init(const struct device *dev)
+{
+#if CONFIG_DT_HAS_HPMICRO_HPM_PWM_ENABLED
+	return pwm_hpmicro_v1_init(dev);
+#elif CONFIG_DT_HAS_HPMICRO_HPM_PWMV2_ENABLED  
+	return pwm_hpmicro_v2_init(dev);
+#endif
+}
 
 static const struct pwm_driver_api pwm_hpmicro_driver_api = {
 	.set_cycles = hpmicro_pwm_set_cycles,
@@ -178,7 +401,7 @@ static const struct pwm_driver_api pwm_hpmicro_driver_api = {
 	PINCTRL_DT_INST_DEFINE(n);					  \
 									  \
 	static const struct pwm_hpmicro_config pwm_hpmicro_config_##n = {     \
-		.base = (PWM_Type *)DT_INST_REG_ADDR(n),	  \
+		.base = (HPM_PWM_BASE_TYPE *)DT_INST_REG_ADDR(n),	  \
 		.clock_name = DT_INST_CLOCKS_CELL(n, name),		\
 		.pincfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n),		  \
 		.period = DT_INST_PROP(n, period_init),			\

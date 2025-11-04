@@ -1,11 +1,13 @@
 # Copyright (c) 2024 HPMicro
 # SPDX-License-Identifier: Apache-2.0
 DT_COMPAT_HPM_PWM := hpmicro,hpm-pwm
+DT_COMPAT_HPM_PWMV2 := hpmicro,hpm-pwmv2
 
 config PWM_HPMICRO
 	bool "HPMicro PWM driver"
 	default y
-	depends on DT_HAS_HPMICRO_HPM_PWM_ENABLED
-	select HAS_HPMSDK_PWM
+	depends on DT_HAS_HPMICRO_HPM_PWM_ENABLED || DT_HAS_HPMICRO_HPM_PWMV2_ENABLED
+	select HAS_HPMSDK_PWM if DT_HAS_HPMICRO_HPM_PWM_ENABLED
+	select HAS_HPMSDK_PWMV2 if DT_HAS_HPMICRO_HPM_PWMV2_ENABLED
 	help
-	  Enable hpmicro pwm driver.
+	  Enable hpmicro pwm driver. Supports both PWM and PWMv2 peripherals.

@@ -1,0 +1,41 @@
+# Copyright 2024 HPMicro
+# SPDX-License-Identifier: Apache-2.0
+
+description: HPMICRO PWMv2 Module
+
+compatible: "hpmicro,hpm-pwmv2"
+
+include: [pwm-controller.yaml, base.yaml, pinctrl-device.yaml]
+
+properties:
+    reg:
+      required: true
+    
+    clocks:
+      required: true
+
+    pinctrl-0:
+      required: false
+
+    period-init:
+      type: int
+      description: pwm period, unit hz
+      required: false
+    
+    dead-zone-in-half-cycle:
+      type: int
+      description: pwm dead zone in half cycle, unit cycle
+      required: false
+
+    en-pwm-trig:
+      type: boolean
+      description: Enable PWM trigger mode
+      required: false
+
+    "#pwm-cells":
+      const: 3
+
+pwm-cells:
+  - channel
+  - period
+  - flags
