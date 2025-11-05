@@ -192,27 +192,9 @@ static int hpmicro_pwm_v2_set_cycles(const struct device *dev, uint32_t channel,
 		return -ENOTSUP;
 	}
 
-	/* Calculate extended precision values for period and pulse */
+	/* pwmv2 only support period <= 0xffffff */
 	if (period_cycles > 0xffffff) {
-		for (i = 1; i <= 16; i++) {
-			if ((period_cycles / (i + 1)) <= 0xffffff) {
-				rld = period_cycles / (i + 1);
-				xrld = i;
-				prld = (xrld << 24) | rld;
-				for (j = 0; j <= 16; j++) {
-					if (((period_cycles - pulse_cycles) / (j + 1)) <= 0xffffff) {
-						rld_cmp = (period_cycles - pulse_cycles) / (j + 1);
-						xrld_cmp = j;
-						break;
-					} else if (j >= 16) {
-						return -ENOTSUP;
-					}
-				}
-				break;
-			} else if (i >= 16) {
-				return -ENOTSUP;
-			}
-		}
+		return -ENOTSUP;
 	} else {
 		rld = period_cycles;
 		xrld = 0;
