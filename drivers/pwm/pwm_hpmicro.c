@@ -72,8 +72,8 @@ static int hpmicro_pwm_v1_set_cycles(const struct device *dev, uint32_t channel,
 		cmp_config[1].cmp = period_cycles;
 		cmp_config[1].update_trigger = pwm_shadow_register_update_on_modify;
 		pwm_config_cmp(pwm_base, channel, &cmp_config[0]);
-		pwm_load_cmp_shadow_on_capture(pwm_base, 23, 0);
-		pwm_config_cmp(pwm_base, 23, &cmp_config[1]);
+		pwm_load_cmp_shadow_on_capture(pwm_base, PWM_SOC_CMP_MAX_COUNT - 1, 0);
+		pwm_config_cmp(pwm_base, PWM_SOC_CMP_MAX_COUNT - 1, &cmp_config[1]);
 	
 		pwm_start_counter(pwm_base);
 		pwm_issue_shadow_register_lock_event(pwm_base);
@@ -133,8 +133,8 @@ static int hpmicro_pwm_v1_set_cycles(const struct device *dev, uint32_t channel,
 			LOG_ERR("failed to setup waveform\n");
 			return -ENOTSUP;
 		}
-		pwm_load_cmp_shadow_on_capture(pwm_base, 23, 0);
-		pwm_config_cmp(pwm_base, 23, &cmp_config[1]);
+		pwm_load_cmp_shadow_on_capture(pwm_base, PWM_SOC_CMP_MAX_COUNT - 1, 0);
+		pwm_config_cmp(pwm_base, PWM_SOC_CMP_MAX_COUNT - 1, &cmp_config[1]);
 	
 		pwm_start_counter(pwm_base);
 		pwm_issue_shadow_register_lock_event(pwm_base);
