@@ -1,4 +1,4 @@
-# Copyright 2024 HPMicro
+# Copyright 2025 HPMicro
 # SPDX-License-Identifier: Apache-2.0
 
 DT_COMPAT_HPMICRO_HPM_FLASH := hpmicro,xpi
@@ -7,7 +7,6 @@ config FLASH_HPMICRO
 	bool "HPMicro FLASH driver"
 	default y
 	depends on DT_HAS_HPMICRO_XPI_ENABLED
-	depends on MCUBOOT
 	select HAS_HPMSDK_FLASH
 	select FLASH_HAS_DRIVER_ENABLED
 	select FLASH_HAS_PAGE_LAYOUT
