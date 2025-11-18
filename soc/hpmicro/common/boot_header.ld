@@ -5,9 +5,9 @@
  *
  */
 
-. = CONFIG_BOOT_NOR_CFG_OPTION_OFFSET;
+. = ORIGIN(ROM) + CONFIG_BOOT_NOR_CFG_OPTION_OFFSET;
 KEEP(*(.nor_cfg_option))
-. = CONFIG_BOOT_HEADER_LOAD_OFFSET;
+. = ORIGIN(ROM) + CONFIG_BOOT_HEADER_LOAD_OFFSET;
 KEEP(*(.boot_header))
 KEEP(*(.fw_info_table))
 KEEP(*(.dc_info))
