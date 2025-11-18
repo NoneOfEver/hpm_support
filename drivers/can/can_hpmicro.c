@@ -262,10 +262,7 @@ static int hpm_can_init(const struct device *dev)
     can_get_default_config(config);
     clock_set_source_divider(cfg->clock_name, cfg->clock_src, cfg->clock_div);
 
-    config->can_timing.num_seg1 = 60;
-    config->can_timing.num_seg2 = 20;
-    config->can_timing.num_sjw = 16;
-    config->can_timing.prescaler = 2;
+    config->baudrate_fd = 5000000U;
 
     /* Set Interrupt Enable Mask */
     config->irq_txrx_enable_mask = CAN_EVENT_RECEIVE | CAN_EVENT_TX_PRIMARY_BUF | CAN_EVENT_TX_SECONDARY_BUF | CAN_EVENT_ERROR;
