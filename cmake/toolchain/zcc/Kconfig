@@ -1,0 +1,12 @@
+# Copyright (c) 2025 HPMicro
+# SPDX-License-Identifier: Apache-2.0
+
+# config TOOLCHAIN_CROSS_COMPILE_SUPPORTS_GNU_EXTENSIONS
+# 	bool "Cross-compile toolchain supports GNU Extensions"
+# 	select TOOLCHAIN_SUPPORTS_GNU_EXTENSIONS
+# 	help
+# 	  Set this if the cross-compile toolchain being used for the build
+# 	  supports GNU Extensions.
+
+config STATIC_INIT_GNU
+    default y
