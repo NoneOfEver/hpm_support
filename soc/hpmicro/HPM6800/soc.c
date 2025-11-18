@@ -23,6 +23,7 @@
 
 #ifdef CONFIG_XIP
 __attribute__((section(".nor_cfg_option"))) const uint32_t option[4] = { 0xfcf90001, 0x00000007, 0x0, 0x0 };
+__attribute__((section(".last_section"))) const uint32_t rom_marker = CONFIG_LINKER_LAST_SECTION_ID_PATTERN;
 #endif
 __attribute__((weak)) void c_startup(void)
 {

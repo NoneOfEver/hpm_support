@@ -446,6 +446,7 @@ SECTION_PROLOGUE(.last_section,,)
 #ifdef CONFIG_LINKER_LAST_SECTION_ID
   /* Fill last section with a word to ensure location counter and actual rom
    * region data usage match. */
+  KEEP(*(.last_section))
   LONG(CONFIG_LINKER_LAST_SECTION_ID_PATTERN)
   /* __rom_region_size is used when configuring the PMP entry of the ROM region.
    * Addresses (pmpaddr) in PMP registers need to be aligned to 4. Align
