@@ -11,7 +11,7 @@ endif()
 set(TOOLCHAIN_HOME ${ZCC_TOOLCHAIN_PATH})
 set(COMPILER zcc)
 set(LINKER ld.lld)
-set(BINTOOLS gnu)
+set(BINTOOLS zcc)
 set(CROSS_COMPILE ${TOOLCHAIN_HOME}/bin/)
 set(C++ z++)
 

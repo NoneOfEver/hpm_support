@@ -10,3 +10,6 @@
 
 config STATIC_INIT_GNU
     default y
+
+config BUILD_NO_GAP_FILL
+    default y
