@@ -112,27 +112,10 @@
 	status = "okay";
 };
 
-&i2c0 {
+&i2c1 {
 	status = "disabled";
-	pinctrl-0 = <&pinmux_i2c0>;
+	pinctrl-0 = <&pinmux_i2c1>;
 	pinctrl-names = "default";
-
-	ov7725: ov7725@21 {
-		compatible = "ovti,ov7725";
-		reg = <0x21>;
-		status = "disabled";
-
-		reset-gpios = <&gpioa 22 GPIO_ACTIVE_HIGH>;
-	};
-
-	touch_rgb: gt911@5d {
-        compatible = "goodix,gt911";
-		reg = <0x5d>;
-		status = "disabled";
-
-		irq-gpios = <&gpiob 8 GPIO_ACTIVE_HIGH>;
-		reset-gpios = <&gpiob 9 GPIO_ACTIVE_LOW>;
-	};
 
 	eeprom: eeprom@50 {
 		compatible = "atmel,at24";

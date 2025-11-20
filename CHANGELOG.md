@@ -66,7 +66,6 @@ All changes since 0.6.0
   - zephyr/samples/basic/blinky: blinky
   - zephyr/samples/basic/blinky_pwm: blinky_pwm
   - zephyr/samples/basic/button
-  - zephyr/samples/drivers/eeprom: i2c_eeprom
   - zephyr/samples/modules/canopennode: canopennode
   - zephyr/samples/subsys/usb/cdc_acm: cdc_acm
   - zephyr/samples/subsys/usb/hid-keyboard: hid-keyboard
