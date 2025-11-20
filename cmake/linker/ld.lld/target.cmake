@@ -4,7 +4,27 @@
 set_property(TARGET linker PROPERTY devices_start_symbol "_device_list_start")
 
 # find_package(Zccld REQUIRED)
-set(ZCCLD_LINKER ${TOOLCHAIN_HOME}/bin/ld.lld)
+execute_process(COMMAND ${CMAKE_C_COMPILER} --print-prog-name=ld.lld
+                OUTPUT_VARIABLE ZCCLD_LINKER
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+if(NOT EXISTS "${ZCCLD_LINKER}")
+  # Need to clear it or else find_program() won't replace the value.
+  set(ZCCLD_LINKER)
+
+  if(DEFINED TOOLCHAIN_HOME)
+    # Search for linker under TOOLCHAIN_HOME if it is defined
+    # to limit which linker to use, or else we would be using
+    # host tools.
+    set(LLD_SEARCH_PATH PATHS ${TOOLCHAIN_HOME} NO_DEFAULT_PATH)
+  endif()
+
+  # Note that, although there is lld, it cannot be used directly
+  # as it would complain about it not being a generic linker,
+  # and asks you to use ld.lld instead. So do not search for lld.
+  find_program(ZCCLD_LINKER ld.lld ${LLD_SEARCH_PATH})
+endif()
+
 set(GNULD_LINKER_IS_BFD NO)
 set(CMAKE_LINKER ${ZCCLD_LINKER})
 
