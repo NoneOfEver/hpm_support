@@ -10,10 +10,6 @@
 #include <hpm_common.h>
 #include <hpm_soc.h>
 
-uint32_t board_init_femc_clock(void)
-{
-}
-
 void init_sdram_pins(void)
 {
 }
