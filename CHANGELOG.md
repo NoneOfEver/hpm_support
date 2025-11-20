@@ -22,6 +22,7 @@ All changes since 0.6.0
   - zephyr/samples/subsys/usb/hid-mouse: hid-mouse
   - zephyr/samples/subsys/usb/mass: mass
   - zephyr/samples/net/sockets/echo_server: ethernet
+  - zephyr/samples/subsys/shell/shell_module: shell_module
   - zephyr/tests/drivers/can/api: can
   - zephyr/tests/drivers/can/timing: can
   - zephyr/tests/drivers/can/shell: can
@@ -48,6 +49,7 @@ All changes since 0.6.0
   - zephyr/samples/subsys/usb/hid-mouse: hid-mouse
   - zephyr/samples/subsys/usb/mass: mass
   - zephyr/samples/net/sockets/echo_server: ethernet
+  - zephyr/samples/subsys/shell/shell_module: shell_module
   - zephyr/tests/drivers/can/api: can
   - zephyr/tests/drivers/can/timing: can
   - zephyr/tests/drivers/can/shell: can
@@ -71,6 +73,7 @@ All changes since 0.6.0
   - zephyr/samples/subsys/usb/hid-keyboard: hid-keyboard
   - zephyr/samples/subsys/usb/hid-mouse: hid-mouse
   - zephyr/samples/subsys/usb/mass: mass
+  - zephyr/samples/subsys/shell/shell_module: shell_module
   - zephyr/tests/drivers/can/api: can
   - zephyr/tests/drivers/can/timing: can
   - zephyr/tests/drivers/can/shell: can
@@ -91,6 +94,7 @@ All changes since 0.6.0
   - zephyr/samples/subsys/usb/hid-keyboard: hid-keyboard
   - zephyr/samples/subsys/usb/hid-mouse: hid-mouse
   - zephyr/samples/subsys/usb/mass: mass
+  - zephyr/samples/subsys/shell/shell_module: shell_module
   - zephyr/samples/net/sockets/echo_server: ethernet
   - zephyr/tests/drivers/can/api: can
   - zephyr/tests/drivers/can/timing: can
