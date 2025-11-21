@@ -42,7 +42,7 @@ struct hpm_can_config {
     /* hpmicro config*/
     CAN_Type *base;
     clock_name_t clock_name;
-    clock_source_t clock_src;
+    clk_src_t clock_src;
     uint32_t clock_div;
     void (*irq_config_func)(const struct device *dev);
     const struct pinctrl_dev_config *pincfg;
@@ -262,7 +262,10 @@ static int hpm_can_init(const struct device *dev)
     can_get_default_config(config);
     clock_set_source_divider(cfg->clock_name, cfg->clock_src, cfg->clock_div);
 
-    config->baudrate_fd = 5000000U;
+    config->can_timing.num_seg1 = 60;
+    config->can_timing.num_seg2 = 20;
+    config->can_timing.num_sjw = 16;
+    config->can_timing.prescaler = 2;
 
     /* Set Interrupt Enable Mask */
     config->irq_txrx_enable_mask = CAN_EVENT_RECEIVE | CAN_EVENT_TX_PRIMARY_BUF | CAN_EVENT_TX_SECONDARY_BUF | CAN_EVENT_ERROR;
@@ -799,7 +802,7 @@ static const struct can_driver_api hpm_can_driver_api = {
         .common = CAN_DT_DRIVER_CONFIG_INST_GET(inst, 0, 1000000), \
         .base = (CAN_Type*)DT_INST_REG_ADDR(n), \
         .clock_name = (clock_name_t)DT_INST_PROP(n, clk_name), \
-        .clock_src = (clock_source_t)DT_INST_PROP(n, clk_source), \
+        .clock_src = (clk_src_t)DT_INST_PROP(n, clk_source), \
         .clock_div = DT_INST_PROP(n, clk_divider), \
         .irq_config_func = hpm_can_irq_config_func##n, \
         .pincfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n), \

@@ -27,6 +27,7 @@
 #include "hpm_sdxc_drv.h"
 #include <drivers/sdhc/sdhc_hpmicro_sdmmc.h>
 #include "hpm_clock_drv.h"
+#include "hpm_gpio_drv.h"
 
 LOG_MODULE_REGISTER(hpmicro_hpm_sdhc, CONFIG_SDHC_LOG_LEVEL);
 
@@ -261,7 +262,7 @@ static int hpm_sdhc_set_io(const struct device *dev, struct sdhc_io *ios)
                 return -EIO;
             }
 
-            struct gpio_hpm_config *config = cfg->vsel_gpio.port->config;
+            const struct gpio_hpm_config *config = cfg->vsel_gpio.port->config;
             uint32_t port_num = config->port_num;
 
             gpio_set_pin_output_with_initial(HPM_GPIO0, port_num, cfg->vsel_gpio.pin, !cfg->vsel_gpios_polarity);
@@ -1054,9 +1055,9 @@ static const struct sdhc_driver_api hpm_sdhc_driver_api = {
         .clock_name = (clock_name_t)DT_INST_PROP(n, clk_name), \
         .clock_src = (clock_source_t)DT_INST_PROP(n, clk_source), \
         .clock_div = DT_INST_PROP(n, clk_divider), \
-        .pwr_gpio = GPIO_DT_SPEC_INST_GET_OR(n, pwr_gpios, 0),    \
-        .detect_gpio = GPIO_DT_SPEC_INST_GET_OR(n, cd_gpios, 0),    \
-        .vsel_gpio = GPIO_DT_SPEC_INST_GET_OR(n, vsel_gpios, 0),    \
+        .pwr_gpio = GPIO_DT_SPEC_INST_GET_OR(n, pwr_gpios, {0}),    \
+        .detect_gpio = GPIO_DT_SPEC_INST_GET_OR(n, cd_gpios, {0}),    \
+        .vsel_gpio = GPIO_DT_SPEC_INST_GET_OR(n, vsel_gpios, {0}),    \
         .vsel_gpios_polarity = GPIO_DT_SPEC_INST_GET_OR(n, vsel_gpios_polarity, 0),    \
         .pwr_3v3_support = DT_INST_PROP(n, pwr_3v3_support),        \
         .pwr_3v0_support = DT_INST_PROP(n, pwr_3v0_support),        \

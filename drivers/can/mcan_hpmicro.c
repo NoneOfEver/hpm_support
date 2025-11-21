@@ -28,11 +28,7 @@
 #define HPM_MCAN_FD_BITRATE_MAX (8000000UL) /* 8Mbps */
 
 static mcan_rx_message_t s_can_rx_buf;
-static volatile mcan_tx_event_fifo_elem_t s_can_tx_evt;
 static volatile bool has_sent_out;
-static volatile bool has_error;
-static volatile bool tx_event_occurred;
-static volatile bool timeout_event_occurred;
 
 #define HPM_MCAN_NUM_TX_BUF_ELEMENTS (32U)
 #define HPM_MCAN_NUM_RX_BUF_ELEMENTS (16U)
@@ -60,7 +56,7 @@ struct hpm_mcan_config {
     /* hpmicro config*/
     MCAN_Type *base;
     clock_name_t clock_name;
-    clock_source_t clock_src;
+    clk_src_t clock_src;
     uint32_t clock_div;
     void (*irq_config_func)(const struct device *dev);
     const struct pinctrl_dev_config *pincfg;
@@ -298,10 +294,6 @@ __attribute__((section(".isr")))static void hpm_mcan_isr(const struct device *de
             }
         }
     }
-    /* New TX Event occurred */
-    if ((flags & MCAN_INT_TX_EVT_FIFO_NEW_ENTRY) != 0) {
-        //mcan_read_tx_evt_fifo(can, (mcan_tx_event_fifo_elem_t *) &s_can_tx_evt);
-    }
     /* Transmit completed */
     if ((flags & MCAN_EVENT_TRANSMIT) != 0U) {
         has_sent_out = true;
@@ -348,7 +340,8 @@ static int hpm_mcan_init(const struct device *dev)
 #if defined(MCAN_SOC_MSG_BUF_IN_AHB_RAM) && (MCAN_SOC_MSG_BUF_IN_AHB_RAM == 1)
     status = mcan_set_msg_buf_attr(can, &s_can_info[0]);
     if (status != status_success) {
-        printf("Error was detected during setting message buffer attribute, please check the arguments\n");
+        LOG_ERR("MCAN set msg buf in AHB RAM failed");
+        return -EAGAIN;
     }
 #endif
 
@@ -1047,7 +1040,7 @@ static const struct can_driver_api hpm_mcan_driver_api = {
         .common = CAN_DT_DRIVER_CONFIG_INST_GET(inst, 0, 1000000), \
         .base = (MCAN_Type*)DT_INST_REG_ADDR(n), \
         .clock_name = (clock_name_t)DT_INST_PROP(n, clk_name), \
-        .clock_src = (clock_source_t)DT_INST_PROP(n, clk_source), \
+        .clock_src = (clk_src_t)DT_INST_PROP(n, clk_source), \
         .clock_div = DT_INST_PROP(n, clk_divider), \
         .irq_config_func = hpm_mcan_irq_config_func##n, \
         .pincfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n), \
