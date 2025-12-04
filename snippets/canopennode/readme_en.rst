@@ -12,6 +12,7 @@ The canopen demo provide following features:
 - NMT
 - SDO
 - Emergency
+- Storage
 
 Path
 ---------------
