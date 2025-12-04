@@ -13,6 +13,7 @@ canopen demo提供以下功能:
 - NMT
 - SDO
 - Emergency
+- Storage
 
 路径
 ---------------
@@ -105,5 +106,23 @@ canopen demo提供以下功能:
     this cmd read index-2120 and the content will record the button pressed times, and this also can be tested by PDO
     12	0x60A	8	40 02 21 00 00 00 00 00	10.160030	发送	标准帧	数据帧	CAN	CAN1	0x53800101
     13	0x58A	8	43 02 21 00 02(button) 00 00 00	10.161480	接收	标准帧	数据帧	CAN	CAN1	0x53800101
+
+    Storage test:
+    (1) test save function: read and set 0x1017(HeartBeat), save ROM params, then reboot board, after reboot read 0x1017 to verify if the value is saved, should be 0x7D0
+    6	0x60A	8	40 17 10 00 00 00 00 00	4.429488	发送	标准帧	数据帧	CAN	CAN1	0x53800101
+    7	0x58A	8	4B 17 10 00 E8 03 00 00	4.430003	接收	标准帧	数据帧	CAN	CAN1	0x53800101
+    11	0x60A	8	2B 17 10 00 D0 07 00 00	7.391081	发送	标准帧	数据帧	CAN	CAN1	0x53800101
+    12	0x58A	8	60 17 10 00 00 00 00 00	7.391740	接收	标准帧	数据帧	CAN	CAN1	0x53800101
+    13	0x60A	8	40 17 10 00 00 00 00 00	8.605892	发送	标准帧	数据帧	CAN	CAN1	0x53800101
+    14	0x58A	8	4B 17 10 00 D0 07 00 00	8.607634	接收	标准帧	数据帧	CAN	CAN1	0x53800101
+    16	0x60A	8	23 10 10 01 73 61 76 65	10.233778	发送	标准帧	数据帧	CAN	CAN1	0x53800101
+    17	0x58A	8	60 10 10 01 00 00 00 00	10.242064	接收	标准帧	数据帧	CAN	CAN1	0x53800101
+    23	0x60A	8	40 17 10 00 00 00 00 00	17.209388	发送	标准帧	数据帧	CAN	CAN1	0x53800101
+    24	0x58A	8	4B 17 10 00 D0 07 00 00	17.212890	接收	标准帧	数据帧	CAN	CAN1	0x53800101
+    (2) test load function: load ROM params, then read 0x1017 to verify if the value is loaded, should be 0x3E8
+    28	0x60A	8	23 11 10 01 6C 6F 61 64	23.253276	发送	标准帧	数据帧	CAN	CAN1	0x53800101
+    29	0x58A	8	60 11 10 01 00 00 00 00	23.257206	接收	标准帧	数据帧	CAN	CAN1	0x53800101
+    34	0x60A	8	40 17 10 00 00 00 00 00	25.488288	发送	标准帧	数据帧	CAN	CAN1	0x53800101
+    35	0x58A	8	4B 17 10 00 E8 03 00 00	25.490994	接收	标准帧	数据帧	CAN	CAN1	0x53800101
 
 
