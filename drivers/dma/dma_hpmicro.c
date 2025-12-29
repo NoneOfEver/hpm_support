@@ -22,6 +22,7 @@
 #include <hpm_common.h>
 #include <hpm_dma_drv.h>
 #include <hpm_dmamux_drv.h>
+#include <hpm_misc.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(dma_hpm_dma);
