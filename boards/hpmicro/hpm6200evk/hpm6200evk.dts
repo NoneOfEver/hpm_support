@@ -34,15 +34,15 @@
 	leds {
 		compatible = "gpio-leds";
 		led_r: led_r {
-			gpios = <&gpiob 11 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			gpios = <&gpioa 27 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
 			label = "LEDR";
 		};
 		led_g: led_g {
-			gpios = <&gpiob 12 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			gpios = <&gpiob 1 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
 			label = "LEDG";
 		};
 		led_b: led_b {
-			gpios = <&gpiob 13 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			gpios = <&gpiob 19 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
 			label = "LEDB";
 		};
 	};
@@ -74,6 +74,12 @@
 	uart-idle-gptmr-clock-name = <18743311>;
 	dmas = <&hdma 0 8>, <&hdma 1 9>;
 	dma-names = "rx", "tx";
+};
+
+&gpioa {
+	pinctrl-0 = <&pinmux_gpioa>;
+	pinctrl-names = "default";
+	status = "okay";
 };
 
 &gpiob {
