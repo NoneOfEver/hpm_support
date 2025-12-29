@@ -472,6 +472,7 @@ zephyr_udc0: &usb0 {
 &eth0 {
     pinctrl-0 = <&pinmux_eth_rgmii>;
     pinctrl-names = "default";
+	phy-addr = <2>; /* rtl8211e */
 	reset-gpios = <&gpiod 18 GPIO_ACTIVE_LOW>;
     status = "disabled";
 };

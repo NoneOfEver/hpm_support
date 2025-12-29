@@ -22,6 +22,11 @@ properties:
 
   pinctrl-names:
     required: true
+  
+  phy-addr:
+    type: int
+    description: Address of phy, use for PA register to find device.
+    required: true
 
   reset-gpios:
     required: false

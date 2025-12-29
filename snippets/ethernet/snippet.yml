@@ -12,3 +12,6 @@ boards:
   hpm6800evk/hpm6880:
     append:
       EXTRA_DTC_OVERLAY_FILE: boards/hpm6800evk.overlay
+  hpm6e00evk/hpm6e80:
+    append:
+      EXTRA_DTC_OVERLAY_FILE: boards/hpm6e00evk.overlay

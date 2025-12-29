@@ -65,6 +65,7 @@ struct hpm_eth_config {
 	uint32_t clock_name;
 	uint32_t clock_src;
 	uint32_t clock_div;
+	uint32_t phy_addr;
 	const struct gpio_dt_spec reset_phy_gpio;
 	void (*irq_config_func)(const struct device *dev);
 	const struct pinctrl_dev_config *pincfg;
@@ -414,9 +415,9 @@ static int eth_init_controller(const struct device *dev)
 	/* Initialize phy */
 #if defined(CONFIG_ETH_PHY) && CONFIG_ETH_PHY
 #if defined(CONFIG_ETH_HPM_RGMII) && CONFIG_ETH_HPM_RGMII
-	rtl8211_reset(cfg->base);
+	rtl8211_reset(cfg->base, cfg->phy_addr);
 	rtl8211_basic_mode_default_config(cfg->base, &phy_config);
-	if (rtl8211_basic_mode_init(cfg->base, &phy_config) == true) {
+	if (rtl8211_basic_mode_init(cfg->base, cfg->phy_addr, &phy_config) == true) {
 #elif defined(CONFIG_ETH_HPM_RMII) && CONFIG_ETH_HPM_RMII
 	    rtl8201_reset(cfg->base);
 	    rtl8201_basic_mode_default_config(cfg->base, &phy_config);
@@ -608,6 +609,7 @@ static const struct hpm_eth_config hpm_eth_config_##n = {	\
 	.clock_name = DT_INST_CLOCKS_CELL_BY_IDX(n, DT_INST_CLOCKS_HAS_IDX(n, 1), name),\
 	.clock_src = DT_INST_CLOCKS_CELL_BY_IDX(n, DT_INST_CLOCKS_HAS_IDX(n, 1), src),\
 	.clock_div = DT_INST_CLOCKS_CELL_BY_IDX(n, DT_INST_CLOCKS_HAS_IDX(n, 1), div),\
+	.phy_addr = DT_INST_PROP(n, phy_addr), \
 	.irq_config_func = hpm_eth_config_func_##n,		\
 	.pincfg = PINCTRL_DT_INST_DEV_CONFIG_GET(n), \
     .reset_phy_gpio = GPIO_DT_SPEC_INST_GET_OR(n, reset_gpios, {0}), \
