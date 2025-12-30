@@ -1,0 +1,54 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Docker files
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Documentation build
+docs/build/
+docs/_build/
+
+# Build artifacts
+**/build/
+**/build-*/
+**/*.o
+**/*.a
+**/*.so
+**/*.elf
+**/*.bin
+**/*.hex
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Zephyr SDK (will be downloaded during build)
+zephyr-sdk-*/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
