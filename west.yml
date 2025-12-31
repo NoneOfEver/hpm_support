@@ -8,7 +8,7 @@
 
 ########################################
 ##  zephyr                    v3.7.0  ##
-##  hpm_sdk                   v1.10.0 ##
+##  hpm_sdk                   v1.11.0 ##
 ########################################
 manifest:
   version: "1.0"
@@ -26,6 +26,9 @@ manifest:
 
   projects:
     - name: zephyr
+      remote: test
+      repo-path: hpm_zephyrproject
+      revision: release_v0.7.0_zsg
       repo-path: zephyr
       revision: zsg_v0.6.0
       import:
@@ -35,7 +38,7 @@ manifest:
     - name: sdk_env
       repo-path: sdk_env
       path: sdk_env
-      revision: v1.10.0
+      revision: v1.11.0
       submodules: true
     - name: canopennode
       repo-path: canopennode
