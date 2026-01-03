@@ -1,54 +1,104 @@
-# Git files
-.git
-.gitignore
-.gitattributes
+# =============================================================================
+# Docker Ignore File for Zephyr HPMicro Development Environment
+# =============================================================================
+# NOTE: This file needs to be in the build context root (ZSG directory)
+# The build script (docker-build.sh) will copy this file automatically.
+# =============================================================================
 
-# Docker files
-Dockerfile
-.dockerignore
-docker-compose.yml
+# =============================================================================
+# Zephyr SDK - MUST be excluded (mounted at runtime instead)
+# =============================================================================
+zephyr-sdk-*
+zephyr-sdk
 
-# Documentation build
-docs/build/
-docs/_build/
+# =============================================================================
+# Build artifacts and temporary files
+# =============================================================================
+# NOTE: Do NOT use generic "**/build/" as it excludes zephyr/scripts/build/ which is needed!
+# Only exclude actual build output directories at specific locations:
+/build/
+zephyr/build/
+modules/**/build/
+bootloader/**/build/
 
-# Build artifacts
-**/build/
-**/build-*/
-**/*.o
-**/*.a
-**/*.so
-**/*.elf
-**/*.bin
-**/*.hex
+# Python cache
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
 
-# IDE files
+# Compiled objects and binaries (only in build outputs, not source)
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+
+# =============================================================================
+# IDE and editor files
+# =============================================================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.*.sw?
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-env/
+# =============================================================================
+# Git files
+# =============================================================================
+# NOTE: We MUST keep .git directories for west to work properly!
+# west requires git repos to load extension commands (west build, west flash, etc.)
+# 
+# Only exclude git files that are not needed:
+.gitignore
+.gitmodules
+.gitattributes
+# 
+# If you want to reduce image size and don't need west extension commands,
+# you can uncomment these lines:
+# .git/
+# **/.git/
 
-# OS files
+# =============================================================================
+# OS-specific files
+# =============================================================================
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Zephyr SDK (will be downloaded during build)
-zephyr-sdk-*/
+# =============================================================================
+# Documentation build outputs
+# =============================================================================
+docs/_build/
+**/html/
+**/latex/
 
-# Logs
+# =============================================================================
+# Test outputs and coverage
+# =============================================================================
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# =============================================================================
+# Logs and temporary files
+# =============================================================================
 *.log
-
-# Temporary files
 *.tmp
 *.temp
+twister-out*/
 
+# =============================================================================
+# Large binary files that might exist
+# =============================================================================
+*.tar.gz
+*.tar.xz
+*.tar.bz2
+*.zip
+*.rar
+*.7z
+
+# Note: tools/openocd IS included because it's needed for flashing
