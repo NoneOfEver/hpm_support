@@ -1,187 +1,168 @@
-# Docker Compose configuration for Zephyr HPMicro development environment
+# =============================================================================
+# Docker Compose for Zephyr HPMicro Development (User Version)
+# =============================================================================
+# This file is for END USERS who pull the image from DockerHub.
 # 
-# Two versions available:
-# - zephyr-remote: Downloads repositories from remote (larger image)
-# - zephyr-local: Source code embedded in image, SDK mounted from host (recommended)
-
-services:
-  # ==========================================================================
-  # LOCAL VERSION (Recommended)
-  # ==========================================================================
-  # Source code is embedded in the image for faster builds
-  # Zephyr SDK is mounted from host to keep image small
-  # SDK is mounted at ${WORKSPACE}/zephyr-sdk-X.X.X (same level as sdk_glue)
-  #
-  zephyr-local:
-    build:
-      context: ..
-      dockerfile: sdk_glue/dockerfile.local
-      args:
-        USER_UID: ${USER_UID:-1000}
-        USER_GID: ${USER_GID:-1000}
-        CMAKE_VERSION: ${CMAKE_VERSION:-3.28.3}
-        ZEPHYR_SDK_VERSION: ${ZEPHYR_SDK_VERSION:-0.16.5}
-    image: zephyr_hpmicro:local
-    container_name: zephyr-local
-    volumes:
-      # Mount Zephyr SDK to workspace (same level as sdk_glue, zephyr, etc.)
-      # The SDK will be at /home/zephyr/zephyr_space/zephyr-sdk-0.16.5
-      # IMPORTANT: Update ZEPHYR_SDK_PATH to your local zephyr-sdk location
-      - ${ZEPHYR_SDK_PATH:-../zephyr-sdk-0.16.5-1}:/home/zephyr/zephyr_space/zephyr-sdk-${ZEPHYR_SDK_VERSION:-0.16.5}
-      
-      # Optional: Mount build output directory for persistence
-      # - ./build:/home/zephyr/zephyr_space/build
-      
-    working_dir: /home/zephyr/zephyr_space
-    stdin_open: true
-    tty: true
-    
-    # Serial device access for flashing and debugging
-    devices:
-      # CMSIS-DAP debugger (FireDAP example)
-      - /dev/serial/by-id/usb-Embedfire_fireDAP_CMSIS-DAP_4e7209d75d71e89c-if00:/dev/ttyDAP
-      # Common USB-to-Serial adapters (uncomment as needed):
-      # - /dev/ttyUSB0:/dev/ttyUSB0
-      # - /dev/ttyACM0:/dev/ttyACM0
-    
-    privileged: false
-    
-    group_add:
-      - dialout
-    
-    networks:
-      - zephyr-network
-    
-    environment:
-      - WORKSPACE=/home/zephyr/zephyr_space
-      - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
-      - ZEPHYR_SDK_VERSION=${ZEPHYR_SDK_VERSION:-0.16.5}
-      - WEST_MANIFEST=${WEST_MANIFEST:-west_gitee.yml}
-    
-    profiles:
-      - local
-
-  # ==========================================================================
-  # REMOTE VERSION
-  # ==========================================================================
-  # Downloads all repositories from remote sources
-  # Use this when you want a clean environment from scratch
-  #
-  zephyr-remote:
-    build:
-      context: ..
-      dockerfile: sdk_glue/dockerfile.remote
-      args:
-        USER_UID: ${USER_UID:-1000}
-        USER_GID: ${USER_GID:-1000}
-        CMAKE_VERSION: ${CMAKE_VERSION:-3.28.3}
-        ZEPHYR_SDK_VERSION: ${ZEPHYR_SDK_VERSION:-0.16.5}
-    image: zephyr_hpmicro:remote
-    container_name: zephyr-remote
-    volumes:
-      - ..:/home/zephyr/zephyr_space
-      # Optional: Mount SDK from host
-      # - ${ZEPHYR_SDK_PATH:-../zephyr-sdk-0.16.5-1}:/home/zephyr/zephyr_space/zephyr-sdk-${ZEPHYR_SDK_VERSION:-0.16.5}
-    working_dir: /home/zephyr/zephyr_space
-    stdin_open: true
-    tty: true
-    devices:
-      - /dev/serial/by-id/usb-Embedfire_fireDAP_CMSIS-DAP_4e7209d75d71e89c-if00:/dev/ttyDAP
-      # - /dev/ttyUSB0:/dev/ttyUSB0
-      # - /dev/ttyACM0:/dev/ttyACM0
-    privileged: false
-    group_add:
-      - dialout
-    networks:
-      - zephyr-network
-    environment:
-      - WORKSPACE=/home/zephyr/zephyr_space
-      - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
-    profiles:
-      - remote
-
-networks:
-  zephyr-network:
-    driver: bridge
-
-# =============================================================================
-# USAGE INSTRUCTIONS
-# =============================================================================
+# QUICK START:
+# 1. Download this file to an empty folder
+# 2. Download and extract Zephyr SDK to the same folder
+# 3. Run: docker compose up -d && docker compose exec zephyr-dev bash
 #
 # PREREQUISITES:
-# 1. Set your Zephyr SDK path:
-#    export ZEPHYR_SDK_PATH=/path/to/your/zephyr-sdk-0.16.5
+# - Docker and Docker Compose installed
+# - Zephyr SDK downloaded and extracted (see instructions below)
+# =============================================================================
+
+services:
+  zephyr-dev:
+    # ==========================================================================
+    # Image from DockerHub
+    # ==========================================================================
+    image: ${DOCKER_IMAGE:-swhpmicro/zephyr-hpmicro:v0.7.0}
+    container_name: zephyr-hpmicro
+    
+    # ==========================================================================
+    # Volume Mounts
+    # ==========================================================================
+    volumes:
+      # Mount Zephyr SDK (REQUIRED)
+      # SDK should be in the same directory as this docker-compose file
+      # Download from: https://github.com/zephyrproject-rtos/sdk-ng/releases
+      - ${ZEPHYR_SDK_PATH:-./zephyr-sdk-0.16.5}:/home/zephyr/zephyr_space/zephyr-sdk-0.16.5
+      
+      # Mount USB for debugging (required for west flash)
+      - /dev/bus/usb:/dev/bus/usb
+      
+      # Optional: Mount a local directory for your own projects
+      # - ./my_projects:/home/zephyr/zephyr_space/my_projects
+      
+      # Optional: Persist build output across container restarts
+      # - ./build:/home/zephyr/zephyr_space/zephyr/build
+
+    # ==========================================================================
+    # Container Settings
+    # ==========================================================================
+    working_dir: /home/zephyr/zephyr_space
+    stdin_open: true
+    tty: true
+    
+    # Privileged mode for USB device access (CMSIS-DAP debugger, etc.)
+    privileged: true
+    
+    # Add user to dialout and plugdev groups for serial access
+    group_add:
+      - dialout
+      - plugdev
+
+    # ==========================================================================
+    # Environment Variables
+    # ==========================================================================
+    environment:
+      - WORKSPACE=/home/zephyr/zephyr_space
+      - ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+      - ZEPHYR_SDK_VERSION=0.16.5
+
+# =============================================================================
+# SETUP INSTRUCTIONS
+# =============================================================================
 #
-# 2. Make sure your user can access serial devices:
-#    sudo usermod -aG dialout $USER
-#    (logout and login again for changes to take effect)
+# STEP 1: Create a working directory
+#   mkdir ~/zephyr-hpmicro && cd ~/zephyr-hpmicro
 #
-# BUILD LOCAL VERSION (recommended - use the build script):
-#   cd /path/to/ZSG/sdk_glue
-#   ./docker-build.sh local
-#   # Or with additional options:
-#   ./docker-build.sh local --no-cache
+# STEP 2: Pull the image and extract docker-compose file
+#   docker pull swhpmicro/zephyr-hpmicro:v0.7.0
+#   docker run --rm swhpmicro/zephyr-hpmicro:v0.7.0 cat /home/zephyr/docker-compose.yaml > docker-compose.yaml
 #
-# ALTERNATIVE BUILD (without script):
-#   # First copy .dockerignore to ZSG root, then build:
-#   cp .dockerignore ../
-#   docker-compose --profile local build zephyr-local
-#   rm ../.dockerignore
+# STEP 3: Download and extract Zephyr SDK
+#   wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.5/zephyr-sdk-0.16.5_linux-x86_64.tar.xz
+#   tar -xvf zephyr-sdk-0.16.5_linux-x86_64.tar.xz
+#   cd zephyr-sdk-0.16.5 && ./setup.sh -t all -h -c && cd ..
 #
-# START LOCAL CONTAINER:
-#   docker-compose --profile local up -d zephyr-local
+# STEP 4: Start the container
+#   docker compose up -d
 #
-# ENTER CONTAINER:
-#   docker-compose --profile local exec zephyr-local /bin/bash
+# STEP 5: Enter the container
+#   docker compose exec zephyr-dev bash
 #
-# INSIDE CONTAINER - Build and flash:
+# STEP 6: Build and flash (inside container)
 #   west build -b hpm6750evkmini samples/basic/blinky
 #   west flash
 #
-# ONE-LINER (start and enter):
-#   docker-compose --profile local up -d && docker-compose --profile local exec zephyr-local /bin/bash
-#
-# STOP CONTAINER:
-#   docker-compose --profile local down
-#
 # =============================================================================
-# DIRECTORY STRUCTURE IN CONTAINER
+# DIRECTORY STRUCTURE
 # =============================================================================
 #
-# /home/zephyr/zephyr_space/          <- WORKSPACE
-#   ├── bootloader/                   <- (embedded in image)
-#   ├── docs/                         <- (embedded in image)
-#   ├── modules/                      <- (embedded in image)
-#   ├── sdk_env/                      <- (embedded in image)
-#   ├── sdk_glue/                     <- (embedded in image)
-#   ├── tools/                        <- (embedded in image)
-#   ├── zephyr/                       <- (embedded in image)
-#   └── zephyr-sdk-0.16.5/            <- (mounted from host at runtime)
+# Your working directory should look like this:
+#
+#   ~/zephyr-hpmicro/
+#   ├── docker-compose.yaml      <- This file
+#   ├── zephyr-sdk-0.16.5/       <- Zephyr SDK (downloaded)
+#   │   ├── setup.sh
+#   │   ├── sdk_version
+#   │   └── ...
+#   └── my_projects/             <- Optional: Your custom projects
+#
+# Inside the container:
+#
+#   /home/zephyr/zephyr_space/
+#   ├── bootloader/              <- (embedded in image)
+#   ├── modules/                 <- (embedded in image)
+#   ├── sdk_env/                 <- HPMicro SDK (embedded)
+#   ├── sdk_glue/                <- (embedded in image)
+#   ├── zephyr/                  <- Zephyr source (embedded)
+#   │   └── samples/             <- Sample projects to build
+#   ├── zephyr-sdk-0.16.5/       <- (mounted from host)
+#   └── my_projects/             <- (optional, mounted from host)
+#
+# =============================================================================
+# COMMON COMMANDS
+# =============================================================================
+#
+# Build a sample:
+#   west build -b <board> <sample_path>
+#   
+# Example boards:
+#   - hpm6750evk2
+#   - hpm6800evk
+#   - hpm6200evk
+#   - hpm6e00evk
+#
+# Example samples:
+#   - samples/basic/blinky
+#   - samples/hello_world
+#   - samples/drivers/gpio
+#
+# Flash to target:
+#   west flash
+#
+# Clean and rebuild:
+#   west build -p always -b <board> <sample_path>
+#
+# Debug:
+#   west debug
 #
 # =============================================================================
 # TROUBLESHOOTING
 # =============================================================================
 #
-# Q: Cannot access serial device?
-# A: 1. Check device exists: ls -la /dev/ttyUSB* /dev/ttyACM* /dev/serial/by-id/
-#    2. Update 'devices' section with correct device path
-#    3. Try setting privileged: true temporarily
+# Q: "Zephyr SDK not found" error?
+# A: Make sure zephyr-sdk-0.16.5 folder is in the same directory as this file
+#    and run setup.sh inside the SDK folder first.
 #
-# Q: Build fails saying SDK not found?
-# A: 1. Check ZEPHYR_SDK_PATH environment variable is set correctly
-#    2. Verify SDK directory exists and contains sdk_version file
-#    3. Try absolute path: export ZEPHYR_SDK_PATH=/absolute/path/to/sdk
+# Q: Cannot flash - "unable to find CMSIS-DAP device"?
+# A: 1. Check debugger is connected: lsusb | grep -i dap
+#    2. Make sure privileged: true is set
+#    3. Check /dev/bus/usb is mounted
 #
-# Q: Permission denied errors?
-# A: 1. Check USER_UID and USER_GID match your host user
-#    2. Run: id (to see your UID/GID)
-#    3. Set in .env file or export before running docker-compose
+# Q: Permission denied on serial device?
+# A: Add your user to dialout group on host:
+#    sudo usermod -aG dialout $USER
+#    Then logout and login again.
 #
-# Q: Image too large / zephyr-sdk being copied?
-# A: Make sure to use ./docker-build.sh which handles .dockerignore correctly
-#
-# Q: SDK setup.sh fails?
-# A: The entrypoint runs setup.sh automatically. Check container logs:
-#    docker-compose --profile local logs zephyr-local
+# Q: Using a different SDK version?
+# A: Set the environment variable before starting:
+#    export ZEPHYR_SDK_PATH=./zephyr-sdk-0.17.0
+#    docker compose up -d
 #
 # =============================================================================
+
