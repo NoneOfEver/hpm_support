@@ -1,10 +1,19 @@
 # Change Log
 
-## [0.7.0] - 
+## [0.7.0] - 2025.1.4
 
 All changes since 0.6.0
 
-## Changed:
+### Added:
+- [boards]: add hpm6200evk board support
+- [boards]: add hpm6e00evk board support
+- [toolchain]: add zcc toolchain support
+- [docker]: add Docker image for development environment
+- [bootloader]: add MCUboot support
+
+### Changed:
+- update pwm drivers include pwm and pwmv2
+- update sdk_env to v1.11.0
 
 ### Verified sample: (-PATH @CASE :SNIPPETS)
 
