@@ -7,7 +7,7 @@
 #ifndef CHERRYUSB_CONFIG_H
 #define CHERRYUSB_CONFIG_H
 
-#include "hpm_soc_feature.h"
+#include "hpm_soc.h"
 #include "hpm_l1c_drv.h"
 
 /* ================ USB common Configuration ================ */
