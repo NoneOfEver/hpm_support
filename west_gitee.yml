@@ -53,7 +53,7 @@ manifest:
       revision: 427159bf95ea49b7680facffaa29ad506b42709b
     - name: mcuboot
       repo-path: mcuboot
-      revision: d414b9759d65fc23843a6b7bf6d80690984f5937
+      revision: c098a7fe3aa03f8e21b6fe083dd8d9704db78a03
       path: bootloader/mcuboot
     - name: mbedtls
       repo-path: mbedtls
