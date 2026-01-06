@@ -85,7 +85,7 @@ static void soc_init_clock(void)
 }
 
 #ifdef CONFIG_NOCACHE_MEMORY
-static void soc_init_pmp(void)
+static void soc_init_pma(void)
 {
     volatile uint32_t start_addr = (uint32_t) &_nocache_ram_start;
     volatile uint32_t length = (uint32_t) &_nocache_ram_size;
@@ -98,19 +98,10 @@ static void soc_init_pmp(void)
     assert((length & (length - 1U)) == 0U);
     assert((start_addr & (length - 1U)) == 0U);
 
-    pmp_entry_t pmp_entry[3] = { 0 };
-    pmp_entry[0].pmp_addr = PMP_NAPOT_ADDR(0x0000000, 0x80000000);
-    pmp_entry[0].pmp_cfg.val = PMP_CFG(READ_EN, WRITE_EN, EXECUTE_EN, ADDR_MATCH_NAPOT, REG_UNLOCK);
-
-
-    pmp_entry[1].pmp_addr = PMP_NAPOT_ADDR(0x80000000, 0x80000000);
-    pmp_entry[1].pmp_cfg.val = PMP_CFG(READ_EN, WRITE_EN, EXECUTE_EN, ADDR_MATCH_NAPOT, REG_UNLOCK);
-
-    pmp_entry[2].pmp_addr = PMP_NAPOT_ADDR(start_addr, length);
-    pmp_entry[2].pmp_cfg.val = PMP_CFG(READ_EN, WRITE_EN, EXECUTE_EN, ADDR_MATCH_NAPOT, REG_UNLOCK);
-    pmp_entry[2].pma_addr = PMA_NAPOT_ADDR(start_addr, length);
-    pmp_entry[2].pma_cfg.val = PMA_CFG(ADDR_MATCH_NAPOT, MEM_TYPE_MEM_NON_CACHE_BUF, AMO_EN);
-    pmp_config(&pmp_entry[0], ARRAY_SIZE(pmp_entry));
+    pma_attr_t pma_attrs[1] = { 0 };
+    pma_attrs[0].pma_addr = PMA_NAPOT_ADDR(start_addr, length);
+    pma_attrs[0].pma_cfg.val = PMA_CFG(ADDR_MATCH_NAPOT, MEM_TYPE_MEM_NON_CACHE_BUF, AMO_EN);
+    pma_config_attributes(&pma_attrs[0], ARRAY_SIZE(pma_attrs));
 }
 #endif
 
@@ -121,7 +112,7 @@ static int hpmicro_soc_init(void)
 	key = irq_lock();
 	soc_init_clock();
 #ifdef CONFIG_NOCACHE_MEMORY
-	soc_init_pmp();
+	soc_init_pma();
 #endif
 	irq_unlock(key);
 
