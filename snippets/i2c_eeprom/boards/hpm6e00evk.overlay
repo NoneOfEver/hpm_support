@@ -18,9 +18,9 @@
 		compatible = "atmel,at24";
 		status = "okay";
 		reg = <0x50>;
-		size = <256>;
-		address-width = <8>;
-		timeout = <25>;
-		pagesize = <16>;
+		size = <DT_SIZE_K(16)>;
+		address-width = <16>;
+		timeout = <5>;
+		pagesize = <64>;
 	};
 };

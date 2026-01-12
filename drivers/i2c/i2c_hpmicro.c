@@ -26,6 +26,7 @@ struct hpmicro_i2c_config {
 	I2C_Type *base;
 	uint32_t clock_name;
 	uint32_t clock_src;
+	uint32_t clock_div;
 	void (*irq_config_func)(const struct device *dev);
 	const struct pinctrl_dev_config *pincfg;
 };
@@ -57,7 +58,7 @@ static int hpmicro_i2c_set_bus_speed(const struct device *dev, uint32_t dev_conf
 	i2c_config_t config;
 	uint32_t freq;
 	/* Configure clock and de-assert reset for I2Cx */
-	clock_set_source_divider(cfg->clock_name, cfg->clock_src, 1U);
+	clock_set_source_divider(cfg->clock_name, cfg->clock_src, cfg->clock_div);
 	clock_add_to_group(cfg->clock_name, 0);
 
 	switch (I2C_SPEED_GET(dev_config)) {
@@ -468,6 +469,7 @@ static const struct hpmicro_i2c_config i2c_cfg_##idx = {		      \
 	.pincfg = PINCTRL_DT_INST_DEV_CONFIG_GET(idx),                        \
 	.clock_name = DT_INST_CLOCKS_CELL(idx, name),	\
 	.clock_src = DT_INST_CLOCKS_CELL(idx, src),	\
+	.clock_div = DT_INST_CLOCKS_CELL(idx, div),	\
 };									      \
 									      \
 static struct hpmicro_i2c_data i2c_data_##idx;			              \
