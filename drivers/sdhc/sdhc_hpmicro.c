@@ -70,9 +70,15 @@ struct hpm_sdhc_config {
     bool pwr_3v0_support;
     bool pwr_1v8_support;
     bool detect_gpio_support;
-bool embedded_4_bit_support;
+    bool embedded_4_bit_support;
     const struct pinctrl_dev_config *pincfg;
     void (*irq_config_func)(const struct device *dev);
+};
+
+struct sdmmc_host_data_t {
+    sdxc_xfer_t xfer;
+    sdxc_command_t cmd;
+    sdxc_data_t data;
 };
 
 struct hpm_sdhc_data {
@@ -89,6 +95,7 @@ struct hpm_sdhc_data {
     void *sdhc_cb_user_data;
     uint32_t *hpm_sdhc_dma_descriptor; /* ADMA descriptor table (noncachable) */
     uint32_t dma_descriptor_len; /* DMA descriptor table length in words */
+    struct sdmmc_host_data_t xfer_data;
 };
 
 static int hpm_sdhc_get_card_present(const struct device *dev);
@@ -472,14 +479,12 @@ static hpm_stat_t hpm_sdhc_send_content(const struct device *dev, sdxc_xfer_t *c
         return status_fail;
     }
 
-    sdxc_adma_config_t *config_ptr = NULL;
-    sdxc_adma_config_t dma_config;
+    sdxc_adma_config_t dma_config = { 0 };
 
     if (content->data != NULL) {
         dma_config.dma_type = sdxc_dmasel_adma2;
         dma_config.adma_table_words = dev_data->dma_descriptor_len / sizeof(uint32_t);
         dma_config.adma_table = dev_data->hpm_sdhc_dma_descriptor;
-        config_ptr = &dma_config;
 
         uint32_t bus_width = sdxc_get_data_bus_width(base);
         uint32_t tx_rx_bytes_per_sec = dev_data->host_io.clock * bus_width / 8;
@@ -489,7 +494,8 @@ static hpm_stat_t hpm_sdhc_send_content(const struct device *dev, sdxc_xfer_t *c
         uint32_t timeout_ms = (uint32_t) (1.0f * read_write_size / tx_rx_bytes_per_sec) * 1000 + 500;
         sdxc_set_data_timeout(base, timeout_ms, NULL);
     }
-    status = sdxc_transfer_nonblocking(base, config_ptr, content);
+
+    status = sdxc_transfer_nonblocking(base, &dma_config, content);
 
     int32_t delay_cnt = 1000000U;
     uint32_t int_stat;
@@ -565,8 +571,8 @@ static hpm_stat_t hpm_sdhc_transfer(const struct device *dev, struct sdhc_comman
     struct sdhc_data *data)
 {
     struct hpm_sdhc_data *dev_data = dev->data;
-    volatile sdxc_command_t host_cmd = {0};
-    sdxc_xfer_t host_content;
+    sdxc_command_t *host_cmd = &dev_data->xfer_data.cmd;
+    sdxc_xfer_t *host_content = &dev_data->xfer_data.xfer;
     int retries = (int)cmd->retries;
     hpm_stat_t status;
     bool need_cp =0;
@@ -582,50 +588,51 @@ static hpm_stat_t hpm_sdhc_transfer(const struct device *dev, struct sdhc_comman
     }
 #endif
 
-    memset(&host_content, 0, sizeof(sdxc_xfer_t));
     memset(&dummy_buffer, 0, DUMMY_BUF_LEN);
+    memset(host_cmd, 0, sizeof(*host_cmd));
 
-    host_cmd.cmd_index = cmd->opcode;
-    host_cmd.cmd_argument = cmd->arg;
-    host_cmd.resp_type = (cmd->response_type & SDHC_NATIVE_RESPONSE_MASK);
+    host_cmd->cmd_index = cmd->opcode;
+    host_cmd->cmd_argument = cmd->arg;
+    host_cmd->resp_type = (cmd->response_type & SDHC_NATIVE_RESPONSE_MASK);
     if (cmd->timeout_ms == SDHC_TIMEOUT_FOREVER) {
-        host_cmd.cmd_timeout_ms = 0xFFFFFFFF;
+        host_cmd->cmd_timeout_ms = 0xFFFFFFFF;
     } else {
-        host_cmd.cmd_timeout_ms = cmd->timeout_ms;
+        host_cmd->cmd_timeout_ms = cmd->timeout_ms;
     }
 
     if (data) {
-        volatile sdxc_data_t host_data = {0};
-        host_data.block_size = data->block_size;
-        host_data.block_cnt = data->blocks;
+        sdxc_data_t *host_data = &dev_data->xfer_data.data;
+        memset(host_data, 0, sizeof(*host_data));
+        host_data->block_size = data->block_size;
+        host_data->block_cnt = data->blocks;
         switch (cmd->opcode) {
             case SD_WRITE_SINGLE_BLOCK:
-                host_data.enable_auto_cmd12 = false;
-                cp_write_size = host_data.block_size * host_data.block_cnt;
+                host_data->enable_auto_cmd12 = false;
+                cp_write_size = host_data->block_size * host_data->block_cnt;
                 memcpy(&dummy_buffer, data->data, cp_write_size);
-                host_data.tx_data = (const uint32_t *) &dummy_buffer;
+                host_data->tx_data = (const uint32_t *) &dummy_buffer;
                 break;
             case SD_WRITE_MULTIPLE_BLOCK:
                 if (dev_data->host_io.timing == SDHC_TIMING_SDR104) {
-                    host_data.enable_auto_cmd23 = true;
+                    host_data->enable_auto_cmd23 = true;
                 } else {
-                    host_data.enable_auto_cmd12 = true;
+                    host_data->enable_auto_cmd12 = true;
                 }
-                cp_write_size = host_data.block_size * host_data.block_cnt;
+                cp_write_size = host_data->block_size * host_data->block_cnt;
                 memcpy(&dummy_buffer, data->data, cp_write_size);
-                host_data.tx_data = (const uint32_t *) &dummy_buffer;
+                host_data->tx_data = (const uint32_t *) &dummy_buffer;
                 break;
             case SD_READ_SINGLE_BLOCK:
-                host_data.rx_data = (uint32_t *) &dummy_buffer;
+                host_data->rx_data = (uint32_t *) &dummy_buffer;
                 need_cp =1;
                 break;
             case SD_READ_MULTIPLE_BLOCK:
                 if (dev_data->host_io.timing == SDHC_TIMING_SDR104) {
-                    host_data.enable_auto_cmd23 = true;
+                    host_data->enable_auto_cmd23 = true;
                 } else {
-                    host_data.enable_auto_cmd12 = true;
+                    host_data->enable_auto_cmd12 = true;
                 }
-                host_data.rx_data = (uint32_t *) &dummy_buffer;
+                host_data->rx_data = (uint32_t *) &dummy_buffer;
                 need_cp =1;
                 break;
             case SD_SWITCH:
@@ -633,33 +640,35 @@ static hpm_stat_t hpm_sdhc_transfer(const struct device *dev, struct sdhc_comman
             case MMC_SEND_EXT_CSD:
             case MMC_CHECK_BUS_TEST:
             case SD_APP_SEND_NUM_WRITTEN_BLK:
-                host_data.rx_data = (uint32_t *) &dummy_buffer;
+                host_data->rx_data = (uint32_t *) &dummy_buffer;
                 need_cp =1;
                 break;
             case SDIO_RW_EXTENDED:
-                if (host_cmd.cmd_argument & BIT(SDIO_CMD_ARG_RW_SHIFT)) {
-                    cp_write_size = host_data.block_size * host_data.block_cnt;
+                if (host_cmd->cmd_argument & BIT(SDIO_CMD_ARG_RW_SHIFT)) {
+                    cp_write_size = host_data->block_size * host_data->block_cnt;
                     memcpy(&dummy_buffer, data->data, cp_write_size);
-                    host_data.tx_data = (uint32_t *) &dummy_buffer;
+                    host_data->tx_data = (uint32_t *) &dummy_buffer;
                 } else {
-                    host_data.rx_data = (uint32_t *) &dummy_buffer;
+                    host_data->rx_data = (uint32_t *) &dummy_buffer;
                     need_cp =1;
                 }
                 break;
             default:
                 return -ENOTSUP;
         }
-        host_content.data = (sdxc_data_t *) &host_data;
+        host_content->data = (sdxc_data_t *) host_data;
+    } else {
+        host_content->data = NULL;
     }
-    host_content.command = (sdxc_command_t *) &host_cmd;
+    host_content->command = (sdxc_command_t *) host_cmd;
     do {
-        status = hpm_sdhc_send_content(dev, &host_content);
+        status = hpm_sdhc_send_content(dev, host_content);
         if (status == status_success) {
             if (data && need_cp == 1) {
-                uint32_t cp_size = host_content.data->block_size * host_content.data->block_cnt;
+                uint32_t cp_size = host_content->data->block_size * host_content->data->block_cnt;
                 memcpy(data->data, &dummy_buffer, cp_size);
             }
-            memcpy(cmd->response, host_content.command->response, sizeof(cmd->response));
+            memcpy(cmd->response, host_content->command->response, sizeof(cmd->response));
             break;
         } else if ((status >= status_sdxc_busy) && (status <= status_sdxc_tuning_failed)) {
             hpm_stat_t error_recovery_status = hpm_sdhc_error_recovery(dev);
