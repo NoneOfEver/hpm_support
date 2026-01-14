@@ -11,3 +11,4 @@ Environment setup for Zephyr on different systems.
    linux
    windows
    docker
+   toolchain
