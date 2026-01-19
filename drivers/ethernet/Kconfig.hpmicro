@@ -26,14 +26,18 @@ config ETH_HPMICRO
 		# delay chain setting
 		config ETH_HPM_TX_DELAY
 			int "TX delay"
-			default 0
+			default 0 if BOARD_HPM6750EVK2
+			default 0 if BOARD_HPM6800EVK
+			default 0 if BOARD_HPM6E00EVK
 			range 0 31
 			help
 			TX delay
 
 		config ETH_HPM_RX_DELAY
 			int "RX delay"
-			default 7
+			default 7 if BOARD_HPM6750EVK2
+			default 0 if BOARD_HPM6800EVK
+			default 0 if BOARD_HPM6E00EVK
 			range 0 31
 			help
 			RX delay
