@@ -132,7 +132,9 @@
 				     <HPMICRO_PINMUX(HPMICRO_PIN(HPMICRO_PORTE, 30), IOC_TYPE_IOC, 0, 18)>,
 				     <HPMICRO_PINMUX(HPMICRO_PIN(HPMICRO_PORTE, 31), IOC_TYPE_IOC, 0, 18)>;
 			input-schmitt-enable;
-			drive-strength = "r000";
+			slew-rate = "fast";
+			slew-pd = "100M";
+			drive-strength = "r011";
 		};
 	};
 };
