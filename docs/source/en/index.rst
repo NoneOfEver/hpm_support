@@ -16,6 +16,7 @@ Catalogue
    samples/index_en
    snippets/index_en.rst
    CHANGELOG
+   verified_samples_en.rst
 
 Indices and tables
 ==================
