@@ -18,6 +18,7 @@ Zephyr_Samples
     ethernet/readme_en.rst
     i2c_eeprom/readme_en.rst
     sdhc/readme_en.rst
+    shell/shell_module/readme_en.rst
     usb/index_en.rst
     video_dvp/readme_en.rst
     video_mipi/readme_en.rst

@@ -18,6 +18,7 @@ Zephyr例程
     ethernet/readme_zh.rst
     i2c_eeprom/readme_zh.rst
     sdhc/readme_zh.rst
+    shell/shell_module/readme_zh.rst
     usb/index_zh.rst
     video_dvp/readme_zh.rst
     video_mipi/readme_zh.rst
