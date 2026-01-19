@@ -13,26 +13,47 @@ Before starting, ensure you have:
 - (Optional) Docker Compose for easier container management
 - USB access for flashing (Linux recommended)
 
-Pulling the Docker Image
+Getting the Docker Image
 --------------------------
 
-You can pull the Docker image from either **DockerHub** or **Alibaba Cloud ACR**.
+You can pull the Docker image from **DockerHub**, or download the image package and load it using ``docker load``.
 
 From DockerHub
 ~~~~~~~~~~~~~~~
 
 .. code-block:: console
 
-    docker pull swhpmicro/zephyr-hpmicro:v0.7.0
+    docker pull swhpmicro/zephyr-hpmicro:latest
 
-From Alibaba Cloud ACR
-~~~~~~~~~~~~~~~~~~~~~~~
+Loading from Image Package (Recommended for users in China)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For faster download speeds in China, use the Alibaba Cloud mirror:
+Users in China are recommended to download the image package and load it locally for faster and more stable speeds.
 
-.. code-block:: console
+#. Download the image package
 
-    docker pull crpi-u5o2013t4tqx7y44.cn-beijing.personal.cr.aliyuncs.com/zephyr_hpmicro/sdk_glue:v0.7.0
+   Download the image package from the following address:
+
+   - 
+   - Or obtain the ``zephyr-hpmicro-latest.tar.gz`` file from other distribution channels
+
+#. Load the image
+
+   .. code-block:: console
+
+       docker load -i zephyr-hpmicro-latest.tar.gz
+
+#. Verify the image is loaded
+
+   .. code-block:: console
+
+       docker images | grep zephyr-hpmicro
+
+   You should see output similar to:
+
+   .. code-block:: text
+
+       swhpmicro/zephyr-hpmicro    latest    xxxxxxxxxx    xx days ago    xxGB
 
 Downloading Zephyr SDK
 ------------------------
@@ -59,7 +80,7 @@ Basic Usage
 
     docker run -it --rm \
         -v ~/zephyr-hpmicro/zephyr-sdk-0.16.5:/home/zephyr/zephyr_space/zephyr-sdk-0.16.5 \
-        swhpmicro/zephyr-hpmicro:v0.7.0 \
+        swhpmicro/zephyr-hpmicro:latest \
         bash
 
 With USB Device Access (for Flashing)
@@ -73,7 +94,7 @@ To flash firmware to your board, you need USB device access:
         --privileged \
         -v /dev/bus/usb:/dev/bus/usb \
         -v ~/zephyr-hpmicro/zephyr-sdk-0.16.5:/home/zephyr/zephyr_space/zephyr-sdk-0.16.5 \
-        swhpmicro/zephyr-hpmicro:v0.7.0 \
+        swhpmicro/zephyr-hpmicro:latest \
         bash
 
 With Custom Project Directory
@@ -88,13 +109,13 @@ To mount your own project directory:
         -v /dev/bus/usb:/dev/bus/usb \
         -v ~/zephyr-hpmicro/zephyr-sdk-0.16.5:/home/zephyr/zephyr_space/zephyr-sdk-0.16.5 \
         -v ~/my_projects:/home/zephyr/zephyr_space/my_projects \
-        swhpmicro/zephyr-hpmicro:v0.7.0 \
+        swhpmicro/zephyr-hpmicro:latest \
         bash
 
-Using Alibaba Cloud Image with Docker Run
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Running with Locally Loaded Image
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Simply replace the image name:
+If you loaded the image package using ``docker load``, the run command is the same as above, using the same image name:
 
 .. code-block:: console
 
@@ -102,8 +123,12 @@ Simply replace the image name:
         --privileged \
         -v /dev/bus/usb:/dev/bus/usb \
         -v ~/zephyr-hpmicro/zephyr-sdk-0.16.5:/home/zephyr/zephyr_space/zephyr-sdk-0.16.5 \
-        crpi-u5o2013t4tqx7y44.cn-beijing.personal.cr.aliyuncs.com/zephyr_hpmicro/sdk_glue:v0.7.0 \
+        swhpmicro/zephyr-hpmicro:latest \
         bash
+
+.. note::
+
+    Whether you pull from DockerHub or load from an image package, the image name is ``swhpmicro/zephyr-hpmicro:latest``, and the usage is exactly the same.
 
 
 Method 2: Using Docker Compose
@@ -114,43 +139,47 @@ Docker Compose provides a more convenient way to manage the container with persi
 Step 1: Extract docker-compose.yaml
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Method 1: Using docker run
+
 .. code-block:: console
 
     cd ~/zephyr-hpmicro
-    docker run --rm swhpmicro/zephyr-hpmicro:v0.7.0 cat /home/zephyr/docker-compose.user.yaml > docker-compose.yaml
+    docker run --rm swhpmicro/zephyr-hpmicro:latest cat /home/zephyr/zephyr_space/sdk_glue/docker-compose.yaml > docker-compose.yaml
 
-Or for Alibaba Cloud image:
+.. note::
+
+    Note: Do not use ``-t`` or ``-it`` options, as they may cause terminal escape sequences in the output.
+
+Method 2: Using docker cp
+
+If Method 1 produces a file with terminal symbols, use the following method:
 
 .. code-block:: console
 
-    docker run --rm crpi-u5o2013t4tqx7y44.cn-beijing.personal.cr.aliyuncs.com/zephyr_hpmicro/sdk_glue:v0.7.0 cat /home/zephyr/docker-compose.yaml > docker-compose.yaml
+    cd ~/zephyr-hpmicro
+    docker create --name temp_container zephyr-hpmicro:latest
+    docker cp temp_container:/home/zephyr/zephyr_space/sdk_glue/docker-compose.yaml ./docker-compose.yaml
+    docker rm temp_container
 
-Step 2: Edit docker-compose.yaml
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. note::
 
-If you pulled from Alibaba Cloud, edit the image line in ``docker-compose.yaml``:
+    Whether you pull from DockerHub or load from an image package, the extraction commands are the same.
 
-.. code-block:: yaml
-
-    services:
-      zephyr-dev:
-        image: crpi-u5o2013t4tqx7y44.cn-beijing.personal.cr.aliyuncs.com/zephyr_hpmicro/sdk_glue:v0.7.0
-
-Step 3: Start the Container
+Step 2: Start the Container
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: console
 
     docker compose up -d
 
-Step 4: Enter the Container
+Step 3: Enter the Container
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: console
 
     docker compose exec zephyr-dev bash
 
-Step 5: Stop the Container
+Step 4: Stop the Container
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: console
@@ -256,6 +285,8 @@ Cannot Flash - Device Not Found
 Permission Denied on Serial Device
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Method 1: Add to dialout group (for standard serial devices)
+
 Add your user to the dialout group on the host:
 
 .. code-block:: console
@@ -263,6 +294,46 @@ Add your user to the dialout group on the host:
     sudo usermod -aG dialout $USER
 
 Then logout and login again.
+
+Method 2: Configure udev rules
+
+If Method 1 still doesn't allow access to the serial port, especially when using USB debuggers (such as CMSIS-DAP, OpenOCD, etc.), you need to configure udev rules.
+
+Some USB debugger devices are not standard serial devices, and simply adding to the ``dialout`` group may not be sufficient. By configuring udev rules, you can set the correct permissions for these devices.
+
+#. Create a udev rules file (on host):
+
+   .. code-block:: console
+
+       sudo nano /etc/udev/rules.d/99-openocd.rules
+
+#. Add the following rule content (select according to your debugger type):
+
+   .. code-block:: text
+
+       # Allow all users to access USB debuggers
+       SUBSYSTEM=="usb", ATTR{idVendor}=="0d28", MODE="0666"
+       KERNEL=="ttyACM*", MODE="0666"
+       KERNEL=="ttyUSB*", MODE="0666"
+
+#. Reload udev rules:
+
+   .. code-block:: console
+
+       sudo udevadm control --reload-rules
+       sudo udevadm trigger
+
+#. Reconnect the USB device, or restart the system.
+
+.. note::
+
+    If your debugger is not in the list above, you can check the device's ``idVendor`` and ``idProduct`` using the following command:
+
+    .. code-block:: console
+
+        lsusb
+
+    Then create the corresponding udev rules based on the actual ``idVendor`` and ``idProduct``.
 
 Using a Different SDK Version
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

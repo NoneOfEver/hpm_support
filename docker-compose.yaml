@@ -18,7 +18,7 @@ services:
     # ==========================================================================
     # Image from DockerHub
     # ==========================================================================
-    image: ${DOCKER_IMAGE:-swhpmicro/zephyr-hpmicro:v0.7.0}
+    image: ${DOCKER_IMAGE:-swhpmicro/zephyr-hpmicro:latest}
     container_name: zephyr-hpmicro
     
     # ==========================================================================
@@ -70,8 +70,8 @@ services:
 #   mkdir ~/zephyr-hpmicro && cd ~/zephyr-hpmicro
 #
 # STEP 2: Pull the image and extract docker-compose file
-#   docker pull swhpmicro/zephyr-hpmicro:v0.7.0
-#   docker run --rm swhpmicro/zephyr-hpmicro:v0.7.0 cat /home/zephyr/docker-compose.yaml > docker-compose.yaml
+#   docker pull swhpmicro/zephyr-hpmicro:latest
+#   docker run --rm swhpmicro/zephyr-hpmicro:latest cat /home/zephyr/docker-compose.yaml > docker-compose.yaml
 #
 # STEP 3: Download and extract Zephyr SDK
 #   wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.16.5/zephyr-sdk-0.16.5_linux-x86_64.tar.xz
@@ -85,7 +85,7 @@ services:
 #   docker compose exec zephyr-dev bash
 #
 # STEP 6: Build and flash (inside container)
-#   west build -b hpm6750evkmini samples/basic/blinky
+#   west build -b hpm6750evk2 samples/basic/blinky
 #   west flash
 #
 # =============================================================================

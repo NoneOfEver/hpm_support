@@ -13,26 +13,47 @@ Docker 环境配置
 - （可选）已安装 Docker Compose，便于容器管理
 - USB 访问权限（用于烧录，推荐使用 Linux）
 
-拉取 Docker 镜像
+获取 Docker 镜像
 ------------------
 
-您可以从 **DockerHub** 或 **阿里云 ACR** 拉取 Docker 镜像。
+您可以从 **DockerHub** 拉取镜像，或者下载镜像包后使用 ``docker load`` 加载。
 
 从 DockerHub 拉取
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: console
 
-    docker pull swhpmicro/zephyr-hpmicro:v0.7.0
+    docker pull swhpmicro/zephyr-hpmicro:latest
 
-从阿里云 ACR 拉取
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+从镜像包加载（推荐国内用户使用）
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-国内用户推荐使用阿里云镜像，下载速度更快：
+国内用户推荐下载镜像包后本地加载，速度更快更稳定。
 
-.. code-block:: console
+#. 下载镜像包
 
-    docker pull crpi-u5o2013t4tqx7y44.cn-beijing.personal.cr.aliyuncs.com/zephyr_hpmicro/sdk_glue:v0.7.0
+   从以下地址下载镜像包：
+
+   - 
+   - 或其他分发渠道获取 ``zephyr-hpmicro-latest.tar.gz`` 文件
+
+#. 加载镜像
+
+   .. code-block:: console
+
+       docker load -i zephyr-hpmicro-latest.tar.gz
+
+#. 验证镜像已加载
+
+   .. code-block:: console
+
+       docker images | grep zephyr-hpmicro
+
+   您应该能看到类似以下输出：
+
+   .. code-block:: text
+
+       swhpmicro/zephyr-hpmicro    latest    xxxxxxxxxx    xx days ago    xxGB
 
 下载 Zephyr SDK
 -----------------
@@ -59,7 +80,7 @@ Zephyr SDK 是必需的，但由于体积较大，未包含在 Docker 镜像中�
 
     docker run -it --rm \
         -v ~/zephyr-hpmicro/zephyr-sdk-0.16.5:/home/zephyr/zephyr_space/zephyr-sdk-0.16.5 \
-        swhpmicro/zephyr-hpmicro:v0.7.0 \
+        swhpmicro/zephyr-hpmicro:latest \
         bash
 
 启用 USB 设备访问（用于烧录）
@@ -73,7 +94,7 @@ Zephyr SDK 是必需的，但由于体积较大，未包含在 Docker 镜像中�
         --privileged \
         -v /dev/bus/usb:/dev/bus/usb \
         -v ~/zephyr-hpmicro/zephyr-sdk-0.16.5:/home/zephyr/zephyr_space/zephyr-sdk-0.16.5 \
-        swhpmicro/zephyr-hpmicro:v0.7.0 \
+        swhpmicro/zephyr-hpmicro:latest \
         bash
 
 挂载自定义项目目录
@@ -88,13 +109,13 @@ Zephyr SDK 是必需的，但由于体积较大，未包含在 Docker 镜像中�
         -v /dev/bus/usb:/dev/bus/usb \
         -v ~/zephyr-hpmicro/zephyr-sdk-0.16.5:/home/zephyr/zephyr_space/zephyr-sdk-0.16.5 \
         -v ~/my_projects:/home/zephyr/zephyr_space/my_projects \
-        swhpmicro/zephyr-hpmicro:v0.7.0 \
+        swhpmicro/zephyr-hpmicro:latest \
         bash
 
-使用阿里云镜像运行
-~~~~~~~~~~~~~~~~~~~~
+使用本地加载的镜像运行
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-只需替换镜像名称即可：
+如果您通过 ``docker load`` 加载了镜像包，运行命令与上述相同，使用相同的镜像名称：
 
 .. code-block:: console
 
@@ -102,8 +123,12 @@ Zephyr SDK 是必需的，但由于体积较大，未包含在 Docker 镜像中�
         --privileged \
         -v /dev/bus/usb:/dev/bus/usb \
         -v ~/zephyr-hpmicro/zephyr-sdk-0.16.5:/home/zephyr/zephyr_space/zephyr-sdk-0.16.5 \
-        crpi-u5o2013t4tqx7y44.cn-beijing.personal.cr.aliyuncs.com/zephyr_hpmicro/sdk_glue:v0.7.0 \
+        swhpmicro/zephyr-hpmicro:latest \
         bash
+
+.. note::
+
+    无论是从 DockerHub 拉取还是从镜像包加载，镜像名称都是 ``swhpmicro/zephyr-hpmicro:latest``，使用方式完全相同。
 
 
 方法二：使用 Docker Compose
@@ -114,43 +139,47 @@ Docker Compose 提供了更便捷的容器管理方式，配置可持久化保�
 步骤一：提取 docker-compose.yaml
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+方法一：使用 docker run
+
 .. code-block:: console
 
     cd ~/zephyr-hpmicro
-    docker run --rm swhpmicro/zephyr-hpmicro:v0.7.0 cat /home/zephyr/docker-compose.user.yaml > docker-compose.yaml
+    docker run --rm swhpmicro/zephyr-hpmicro:latest cat /home/zephyr/zephyr_space/sdk_glue/docker-compose.yaml > docker-compose.yaml
 
-或使用阿里云镜像：
+.. note::
+
+    注意：不要使用 ``-t`` 或 ``-it`` 选项，否则输出可能包含终端转义序列。
+
+方法二：使用 docker cp
+
+如果方法一生成的文件包含终端符号，可以使用以下方法：
 
 .. code-block:: console
 
-    docker run --rm crpi-u5o2013t4tqx7y44.cn-beijing.personal.cr.aliyuncs.com/zephyr_hpmicro/sdk_glue:v0.7.0 cat /home/zephyr/docker-compose.yaml > docker-compose.yaml
+    cd ~/zephyr-hpmicro
+    docker create --name temp_container zephyr-hpmicro:latest
+    docker cp temp_container:/home/zephyr/zephyr_space/sdk_glue/docker-compose.yaml ./docker-compose.yaml
+    docker rm temp_container
 
-步骤二：编辑 docker-compose.yaml
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. note::
 
-如果您从阿里云拉取的镜像，请编辑 ``docker-compose.yaml`` 中的镜像地址：
+    无论是从 DockerHub 拉取还是从镜像包加载的镜像，提取命令都是相同的。
 
-.. code-block:: yaml
-
-    services:
-      zephyr-dev:
-        image: crpi-u5o2013t4tqx7y44.cn-beijing.personal.cr.aliyuncs.com/zephyr_hpmicro/sdk_glue:v0.7.0
-
-步骤三：启动容器
+步骤二：启动容器
 ~~~~~~~~~~~~~~~~~~
 
 .. code-block:: console
 
     docker compose up -d
 
-步骤四：进入容器
+步骤三：进入容器
 ~~~~~~~~~~~~~~~~~~
 
 .. code-block:: console
 
     docker compose exec zephyr-dev bash
 
-步骤五：停止容器
+步骤四：停止容器
 ~~~~~~~~~~~~~~~~~~
 
 .. code-block:: console
@@ -256,6 +285,8 @@ Docker Compose 提供了更便捷的容器管理方式，配置可持久化保�
 串口设备权限被拒绝
 ~~~~~~~~~~~~~~~~~~~~
 
+方法一：添加到 dialout 组（适用于标准串口设备）
+
 在主机上将您的用户添加到 dialout 组：
 
 .. code-block:: console
@@ -263,6 +294,46 @@ Docker Compose 提供了更便捷的容器管理方式，配置可持久化保�
     sudo usermod -aG dialout $USER
 
 然后注销并重新登录。
+
+方法二：配置 udev 规则
+
+如果方法一仍然无法访问串口，特别是使用 USB 调试器（如 CMSIS-DAP、OpenOCD 等）时，需要配置 udev 规则。
+
+某些 USB 调试器设备不是标准的串口设备，仅添加到 ``dialout`` 组可能不够。通过配置 udev 规则，可以为这些设备设置正确的权限。
+
+#. 创建 udev 规则文件（host）：
+
+   .. code-block:: console
+
+       sudo nano /etc/udev/rules.d/99-openocd.rules
+
+#. 添加以下规则内容（根据您的调试器类型选择）：
+
+   .. code-block:: text
+
+       # 允许所有用户访问 USB 调试器
+       SUBSYSTEM=="usb", ATTR{idVendor}=="0d28", MODE="0666"
+       KERNEL=="ttyACM*", MODE="0666"
+       KERNEL=="ttyUSB*", MODE="0666"
+
+#. 重新加载 udev 规则：
+
+   .. code-block:: console
+
+       sudo udevadm control --reload-rules
+       sudo udevadm trigger
+
+#. 重新插拔 USB 设备，或重启系统。
+
+.. note::
+
+   如果您的调试器不在上述列表中，可以通过以下命令查看设备的 ``idVendor`` 和 ``idProduct``：
+
+   .. code-block:: console
+
+       lsusb
+
+   然后根据实际的 ``idVendor`` 和 ``idProduct`` 创建对应的 udev 规则。
 
 使用不同版本的 SDK
 ~~~~~~~~~~~~~~~~~~~~
