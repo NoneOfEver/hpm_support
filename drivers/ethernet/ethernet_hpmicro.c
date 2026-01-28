@@ -13,6 +13,7 @@ LOG_MODULE_REGISTER(ethernet_hpm_eth);
 
 #include <errno.h>
 #include <stdbool.h>
+#include <string.h>
 #include <soc.h>
 
 #include <zephyr/kernel.h>
@@ -60,6 +61,10 @@ LOG_MODULE_REGISTER(ethernet_hpm_eth);
 #define ETH_HPM_TX_TIMEOUT	 K_MSEC(20)
 #endif
 
+#ifndef ETH_HPM_LINK_STATUS_CHECK_INTERVAL
+#define ETH_HPM_LINK_STATUS_CHECK_INTERVAL	 K_SECONDS(1)
+#endif
+
 struct hpm_eth_config {
 	ENET_Type *base;
 	uint32_t clock_name;
@@ -82,6 +87,10 @@ struct hpm_eth_data {
 	struct k_sem tx_sem;
 	struct k_thread rx_thread;
 	K_KERNEL_STACK_MEMBER(rx_thread_stack, CONFIG_ETH_HPM_RX_THREAD_STACK_SIZE);
+#if defined(CONFIG_ETH_PHY) && CONFIG_ETH_PHY
+	enet_phy_status_t last_phy_status;
+	struct k_work_delayable link_status_work;
+#endif
 };
 
 __attribute__((section(".nocache"))) __attribute__((aligned(ENET_SOC_DESC_ADDR_ALIGNMENT)))
@@ -236,13 +245,6 @@ static void rx_thread(void *arg1, void *unused1, void *unused2)
 		res = k_sem_take(&data->rx_sem, K_FOREVER);
 		__ASSERT_NO_MSG(res == 0);
 
-		if (res == 0) {
-			if (data->link_up != true) {
-				data->link_up = true;
-				net_eth_carrier_on(get_iface(data));
-			}
-		}
-
 		while ((pkt = eth_rx(dev)) != NULL) {
 			iface = net_pkt_iface(pkt);
 			res = net_recv_data(iface, pkt);
@@ -327,8 +329,9 @@ static int eth_reset_phy(const struct device *dev)
 
 	if (gpio_is_ready_dt(&cfg->reset_phy_gpio)) {
         gpio_pin_configure_dt(&cfg->reset_phy_gpio, GPIO_OUTPUT_ACTIVE);
-		k_usleep(1000);
+		k_msleep(15);
 		gpio_pin_configure_dt(&cfg->reset_phy_gpio, GPIO_OUTPUT_INACTIVE);
+		k_msleep(30);
 		res = 0;
     } else {
         LOG_ERR("no reset phy gpio");
@@ -337,6 +340,66 @@ static int eth_reset_phy(const struct device *dev)
 
 	return res;
 }
+
+#if defined(CONFIG_ETH_PHY) && CONFIG_ETH_PHY
+static void eth_check_link_status(const struct device *dev)
+{
+	const struct hpm_eth_config *cfg = dev->config;
+	struct hpm_eth_data *data = dev->data;
+	enet_phy_status_t status = {0};
+	enet_line_speed_t line_speed[] = {
+		enet_line_speed_10mbps,
+		enet_line_speed_100mbps,
+		enet_line_speed_1000mbps
+	};
+	const char *speed_str[] = {"10Mbps", "100Mbps", "1000Mbps"};
+	const char *duplex_str[] = {"Half duplex", "Full duplex"};
+
+#if defined(CONFIG_ETH_HPM_RGMII) && CONFIG_ETH_HPM_RGMII
+	#if defined(CONFIG_ETH_PHY_RTL8211) && CONFIG_ETH_PHY_RTL8211
+		rtl8211_get_phy_status(cfg->base, cfg->phy_addr, &status);
+	#endif
+#else
+	#if defined(CONFIG_ETH_PHY_RTL8201) && CONFIG_ETH_PHY_RTL8201
+		rtl8201_get_phy_status(cfg->base, cfg->phy_addr, &status);
+	#endif
+#endif
+
+	if (status.enet_phy_link || (status.enet_phy_link != data->last_phy_status.enet_phy_link)) {
+		if (memcmp(&data->last_phy_status, &status, sizeof(enet_phy_status_t)) != 0) {
+			memcpy(&data->last_phy_status, &status, sizeof(enet_phy_status_t));
+			if (status.enet_phy_link) {
+				LOG_INF("Link Status: Up");
+				LOG_INF("Link Speed:  %s", speed_str[status.enet_phy_speed]);
+				LOG_INF("Link Duplex: %s", duplex_str[status.enet_phy_duplex]);
+				enet_set_line_speed(cfg->base, line_speed[status.enet_phy_speed]);
+				enet_set_duplex_mode(cfg->base, (enet_duplex_mode_t)status.enet_phy_duplex);
+				net_if_carrier_on(data->iface);
+				data->link_up = true;
+			} else {
+				LOG_INF("Link Status: Down");
+				net_if_carrier_off(data->iface);
+				data->link_up = false;
+			}
+		}
+	}
+}
+
+static void eth_link_status_work_handler(struct k_work *work)
+{
+	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
+	struct hpm_eth_data *data = CONTAINER_OF(dwork, struct hpm_eth_data, link_status_work);
+
+	if (data->iface != NULL) {
+		const struct device *dev = net_if_get_device(data->iface);
+		if (dev != NULL) {
+			eth_check_link_status(dev);
+			/* Schedule next check */
+			k_work_schedule(&data->link_status_work, ETH_HPM_LINK_STATUS_CHECK_INTERVAL);
+		}
+	}
+}
+#endif
 
 static int eth_init_controller(const struct device *dev)
 {
@@ -493,6 +556,15 @@ static int hpm_eth_init(const struct device *dev)
 		0, K_NO_WAIT);
 
 	k_thread_name_set(&data->rx_thread, "hpm_eth");
+
+#if defined(CONFIG_ETH_PHY) && CONFIG_ETH_PHY
+	/* Initialize last PHY status */
+	memset(&data->last_phy_status, 0, sizeof(enet_phy_status_t));
+	/* Initialize link status work */
+	k_work_init_delayable(&data->link_status_work, eth_link_status_work_handler);
+	/* Start link status monitoring */
+	k_work_schedule(&data->link_status_work, ETH_HPM_LINK_STATUS_CHECK_INTERVAL);
+#endif
 
 	return 0;
 }
