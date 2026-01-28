@@ -6,6 +6,7 @@ cmake-build*
 *.pyc
 sec_core_img.c
 *.o
+*.idx
 
 docs/build/*
 docs/source/en/samples/*
