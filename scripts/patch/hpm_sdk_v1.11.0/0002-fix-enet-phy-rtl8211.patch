@@ -1,33 +1,61 @@
-From faf2af223f2c8f97b0eaf90927b44d94560add48 Mon Sep 17 00:00:00 2001
-From: Yingda WU <yingda.wu@hpmicro.com>
-Date: Wed, 31 Dec 2025 14:04:37 +0800
-Subject: [PATCH] [fix]: enet phy rtl8211
-
-Signed-off-by: Yingda WU <yingda.wu@hpmicro.com>
----
- hpm_sdk/components/enet_phy/rtl8211/hpm_rtl8211.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/hpm_sdk/components/enet_phy/rtl8211/hpm_rtl8211.c b/hpm_sdk/components/enet_phy/rtl8211/hpm_rtl8211.c
-index 175df1037..6c55fe5d6 100644
---- a/hpm_sdk/components/enet_phy/rtl8211/hpm_rtl8211.c
-+++ b/hpm_sdk/components/enet_phy/rtl8211/hpm_rtl8211.c
-@@ -82,13 +82,13 @@ bool rtl8211_basic_mode_init(ENET_Type *ptr, uint32_t phy_addr, rtl8211_config_t
-         data |= RTL8211_BMCR_DUPLEX_SET(config->duplex);                                                /* Set duplex mode */
-     }
+diff --git a/hpm_sdk/components/enet_phy/rtl8201/hpm_rtl8201.c b/hpm_sdk/components/enet_phy/rtl8201/hpm_rtl8201.c
+index 787064d13..05fe9aad3 100644
+--- a/hpm_sdk/components/enet_phy/rtl8201/hpm_rtl8201.c
++++ b/hpm_sdk/components/enet_phy/rtl8201/hpm_rtl8201.c
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2021-2025 HPMicro
++ * Copyright (c) 2021-2026 HPMicro
+  *
+  * SPDX-License-Identifier: BSD-3-Clause
+  *
+@@ -89,13 +89,13 @@ bool rtl8201_basic_mode_init(ENET_Type *ptr, uint32_t phy_addr, rtl8201_config_t
  
-+    enet_write_phy(ptr, phy_addr, RTL8211_BMCR, data);
-+
-     /* check the id of rtl8211 */
-     if (rtl8211_check_id(ptr, phy_addr) == false) {
-         return false;
-     }
+     enet_write_phy(ptr, phy_addr, RTL8201_BMCR, data);
  
--    enet_write_phy(ptr, phy_addr, RTL8211_BMCR, data);
--
+-#if defined(RMII) && RMII
+-    if (config->rmii_refclk_dir == enet_phy_rmii_refclk_dir_in) {
+-        rtl8201_set_rmii_refclk_direction(ptr, phy_addr, rtl8201_config_refclk_input);
+-    } else {
+-        rtl8201_set_rmii_refclk_direction(ptr, phy_addr, rtl8201_config_refclk_output);
++    if (config->media_interface == enet_inf_rmii) {
++        if (config->rmii_refclk_dir == enet_phy_rmii_refclk_dir_in) {
++            rtl8201_set_rmii_refclk_direction(ptr, phy_addr, rtl8201_config_refclk_input);
++        } else {
++            rtl8201_set_rmii_refclk_direction(ptr, phy_addr, rtl8201_config_refclk_output);
++        }
+     }
+-#endif
+ 
      return true;
  }
+@@ -131,4 +131,4 @@ void rtl8201_set_rmii_refclk_direction(ENET_Type *ptr, uint32_t phy_addr, uint8_
  
--- 
-2.25.1
-
+     /* write register RMSR */
+     enet_write_phy(ptr, phy_addr, RTL8201_RMSR_P7, data);
+-}
+\ No newline at end of file
++}
+diff --git a/hpm_sdk/components/enet_phy/rtl8201/hpm_rtl8201.h b/hpm_sdk/components/enet_phy/rtl8201/hpm_rtl8201.h
+index 80280a748..2902a42ed 100644
+--- a/hpm_sdk/components/enet_phy/rtl8201/hpm_rtl8201.h
++++ b/hpm_sdk/components/enet_phy/rtl8201/hpm_rtl8201.h
+@@ -6,7 +6,7 @@
+  */
+ 
+ /*
+- * Copyright (c) 2021-2025 HPMicro
++ * Copyright (c) 2021-2026 HPMicro
+  *
+  * SPDX-License-Identifier: BSD-3-Clause
+  *
+@@ -66,7 +66,8 @@ typedef struct {
+     uint8_t speed;              /**< Port speed: @ref enet_phy_port_speed_t */
+     bool auto_negotiation;      /**< Enable/disable auto-negotiation */
+     uint8_t duplex;             /**< Duplex mode: @ref enet_phy_duplex_mode_t */
+-    uint8_t rmii_refclk_dir;   /**< RMII reference clock direction: @ref rtl8201_config_refclk_direction_t */
++    uint8_t rmii_refclk_dir;    /**< RMII reference clock direction: @ref rtl8201_config_refclk_direction_t */
++    uint8_t media_interface;    /**< Interface type: @ref enet_inf_type_t */
+ } rtl8201_config_t;
+ 
+ #if defined(__cplusplus)

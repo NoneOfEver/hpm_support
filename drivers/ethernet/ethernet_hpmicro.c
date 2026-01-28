@@ -482,10 +482,11 @@ static int eth_init_controller(const struct device *dev)
 	rtl8211_basic_mode_default_config(cfg->base, &phy_config);
 	if (rtl8211_basic_mode_init(cfg->base, cfg->phy_addr, &phy_config) == true) {
 #elif defined(CONFIG_ETH_HPM_RMII) && CONFIG_ETH_HPM_RMII
-	    rtl8201_reset(cfg->base);
+	    rtl8201_reset(cfg->base, cfg->phy_addr);
 	    rtl8201_basic_mode_default_config(cfg->base, &phy_config);
-		phy_config.txc_input = CONFIG_ETH_RMII_REFCLK ? true : false;
-	if (rtl8201_basic_mode_init(cfg->base, &phy_config) == true) {
+	    phy_config.media_interface = enet_inf_rmii;
+	    phy_config.rmii_refclk_dir = CONFIG_ETH_RMII_REFCLK ? true : false;;
+	if (rtl8201_basic_mode_init(cfg->base, cfg->phy_addr, &phy_config) == true) {
 #endif
 		LOG_INF("Enet phy init passed !\n");
 	    return status_success;
