@@ -12,6 +12,7 @@ Sdhc
     zephyr/tests/drivers/disk/disk_access
     zephyr/tests/drivers/disk/disk_performance
     zephyr/tests/subsys/sd/sdmmc
+    zephyr/tests/subsys/sd/mmc
 
 命令行
 -----------

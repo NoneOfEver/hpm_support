@@ -87,6 +87,9 @@ hpm6750evk2
    * - SDHC Test
      - zephyr/tests/subsys/sd/sdmmc
      - sdhc
+   * - SDHC Test
+     - zephyr/tests/subsys/sd/mmc
+     - sdhc
    * - CherryUSB
      - sdk_glue/samples/cherryusb/device/msc/ram_disk
      - \-
@@ -184,6 +187,9 @@ hpm6800evk
      - sdhc
    * - SDHC Test
      - zephyr/tests/subsys/sd/sdmmc
+     - sdhc
+   * - SDHC Test
+     - zephyr/tests/subsys/sd/mmc
      - sdhc
    * - CherryUSB
      - sdk_glue/samples/cherryusb/device/msc/ram_disk
