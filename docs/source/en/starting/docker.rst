@@ -55,10 +55,15 @@ Users in China are recommended to download the image package and load it locally
 
        swhpmicro/zephyr-hpmicro    latest    xxxxxxxxxx    xx days ago    xxGB
 
-Downloading Zephyr SDK
-------------------------
+Configuring Toolchain
+-----------------------
 
-The Zephyr SDK is required but not included in the Docker image (due to size). Download and extract it:
+The Zephyr SDK is large and not included in the Docker image.
+
+Zephyr SDK
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Official Zephyr SDK with full functionality and best compatibility.
 
 .. code-block:: console
 

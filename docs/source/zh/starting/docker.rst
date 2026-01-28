@@ -55,10 +55,15 @@ Docker 环境配置
 
        swhpmicro/zephyr-hpmicro    latest    xxxxxxxxxx    xx days ago    xxGB
 
-下载 Zephyr SDK
------------------
+配置工具链
+-------------------
 
-Zephyr SDK 是必需的，但由于体积较大，未包含在 Docker 镜像中。请下载并解压：
+由于 Zephyr SDK 体积较大，未包含在 Docker 镜像中。
+
+Zephyr SDK
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Zephyr 官方 SDK，功能完整，兼容性最佳。
 
 .. code-block:: console
 
@@ -278,7 +283,7 @@ Docker Compose 提供了更便捷的容器管理方式，配置可持久化保�
 
         lsusb | grep -i xxx
 
-#. 确保使用了 ``--privileged`` 参数（docker run）或设置了 ``privileged: true``（docker-compose）
+#. 确保使用了 ``--privileged`` 参数（docker run）或设置了 ``privileged: true`` (docker-compose)
 
 #. 确认 ``/dev/bus/usb`` 已挂载
 

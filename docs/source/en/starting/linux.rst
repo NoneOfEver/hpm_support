@@ -2,7 +2,7 @@
 Linux Environment Configuration Guide
 ======================================
 
-**Linux** (using Ubuntu with bash) requires manual installation of the hpmicro riscv-openocd tool. Use the default installation path: `/usr/local/bin/openocd`.
+**Linux** (using Ubuntu with bash) requires manual installation of the hpmicro riscv-openocd tool. Add openocd to your system path.
 
 
 Installing Prerequisites
@@ -78,7 +78,7 @@ Setting Up Workspace
 
     .. code-block:: console
 
-        pip3 install --user -r ~/${workspace}/zephyr/scripts/requirements.txt
+        pip3 install --user -r zephyr/scripts/requirements.txt
 
 #. Apply HPM_SDK patches
 
@@ -86,10 +86,22 @@ Setting Up Workspace
 
         west supply
 
-Installing Zephyr Toolchain
------------------------------
-    Download the Zephyr SDK from `ZEPHYR-SDK <https://github.com/zephyrproject-rtos/sdk-ng/tags/>`_
-    
+Configuring Toolchain
+----------------------
+
+Multiple toolchains are supported. Choose one based on your needs.
+
+.. note::
+
+   If you already have a RISC-V toolchain, you can skip the installation and configure environment variables directly. For detailed toolchain configuration and switching methods, refer to the :doc:`toolchain` section.
+
+Zephyr SDK
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Official Zephyr SDK with full functionality and best compatibility.
+
+Download from: `ZEPHYR-SDK <https://github.com/zephyrproject-rtos/sdk-ng/releases/>`_
+
 #. Command-line installation
 
     .. code-block:: console
@@ -104,7 +116,40 @@ Installing Zephyr Toolchain
     .. code-block:: console
 
         cd zephyr-sdk-0.16.5
-        source setup.sh
+        ./setup.sh
+
+zcc Toolchain
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+zcc is an LLVM/Clang-based toolchain with smaller download size and fast compilation.
+
+#. Download and extract zcc toolchain
+
+    Obtain the zcc toolchain package from the appropriate channel and extract to a directory, e.g., ``~/sdk_env/toolchains/zcc-4.1.5/``
+
+#. Configure environment variables
+
+    .. code-block:: console
+
+        export ZEPHYR_TOOLCHAIN_VARIANT=zcc
+        export ZCC_TOOLCHAIN_PATH=~/sdk_env/toolchains/zcc-4.1.5/
+        export TOOLCHAIN_ROOT=${workspace}/sdk_glue/
+
+    It is recommended to add these environment variables to ``~/.bashrc`` for persistence.
+
+GNU Cross-Compile Toolchain
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you already have a RISC-V GCC toolchain, you can use it directly. This is not officially supported; resolve any issues on your own.
+
+#. Configure environment variables
+
+    .. code-block:: console
+
+        export ZEPHYR_TOOLCHAIN_VARIANT=cross-compile
+        export CROSS_COMPILE=/path/to/riscv32-unknown-elf-gcc/bin/riscv32-unknown-elf-
+
+    Replace ``/path/to/riscv32-unknown-elf-gcc`` with your actual toolchain installation path
 
 Building Zephyr Button Sample
 ------------------------------

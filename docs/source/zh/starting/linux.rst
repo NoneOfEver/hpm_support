@@ -2,7 +2,7 @@
 linux上的环境配置
 ======================
 
-**linux** (这里以ubuntu, bash进行环境配置)环境下需要自行安装hpmicro riscv-openocd,使用默认安装路径 ``/usr/local/bin/openocd`` 
+**linux** (这里以ubuntu, bash进行环境配置)环境下需要自行安装hpmicro riscv-openocd, 将openocd添加到系统路径。
 
 安装工具
 --------
@@ -77,7 +77,7 @@ linux上的环境配置
 
     .. code-block:: console
 
-        pip3 install --user -r ~/${workspace}/zephyr/scripts/requirements.txt
+        pip3 install --user -r zephyr/scripts/requirements.txt
 
 #. 增加hpm_sdk相关补丁
 
@@ -85,10 +85,22 @@ linux上的环境配置
 
         west supply
 
-安装zephyr的工具链包
+配置工具链
 --------------------
-    下载zephyr的编译工具 `ZEPHYR-SDK <https://github.com/zephyrproject-rtos/sdk-ng/tags/>`_
-    
+
+支持多种工具链，请根据您的需求选择其中一种进行安装和配置。
+
+.. note::
+
+   如果您已经有可用的 RISC-V 工具链，可以跳过安装步骤，直接配置环境变量即可。详细的工具链配置和切换方法请参阅 :doc:`toolchain` 章节。
+
+Zephyr SDK
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Zephyr 官方 SDK，功能完整，兼容性最佳。
+
+下载地址：`ZEPHYR-SDK <https://github.com/zephyrproject-rtos/sdk-ng/releases/>`_
+
 #. 命令行安装
 
     .. code-block:: console
@@ -103,7 +115,40 @@ linux上的环境配置
     .. code-block:: console
 
         cd zephyr-sdk-0.16.5
-        source setup.sh
+        ./setup.sh
+
+zcc 工具链
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+zcc 是基于 LLVM/Clang 的工具链，下载体积小，编译速度快。
+
+#. 下载并解压 zcc 工具链
+
+    请从相应渠道获取 zcc 工具链包并解压到指定目录，例如 ``~/sdk_env/toolchains/zcc-4.1.5/``
+
+#. 配置环境变量
+
+    .. code-block:: console
+
+        export ZEPHYR_TOOLCHAIN_VARIANT=zcc
+        export ZCC_TOOLCHAIN_PATH=~/sdk_env/toolchains/zcc-4.1.5/
+        export TOOLCHAIN_ROOT=${workspace}/sdk_glue/
+
+    建议将以上环境变量添加到 ``~/.bashrc`` 中以便持久化。
+
+GNU 交叉编译工具链
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+如果您已有 RISC-V GCC 工具链，可以直接使用。非官方支持，使用时请自行解决相关问题。
+
+#. 配置环境变量
+
+    .. code-block:: console
+
+        export ZEPHYR_TOOLCHAIN_VARIANT=cross-compile
+        export CROSS_COMPILE=/path/to/riscv32-unknown-elf-gcc/bin/riscv32-unknown-elf-
+
+    请将 ``/path/to/riscv32-unknown-elf-gcc`` 替换为您的工具链实际安装路径
 
 编译zephyr的button sample
 --------------------------
@@ -118,7 +163,7 @@ linux上的环境配置
 
 ``-p`` 选项, ``always`` 重新编译, ``auto`` 增量编译。
 ``-S`` 选项, 特定的硬件或者配置选项支持,如:
-    
+
     .. code-block:: console
 
         west build -p always -b hpm6750evk2 -S blinky_pwm samples/basic/blinky_pwm    

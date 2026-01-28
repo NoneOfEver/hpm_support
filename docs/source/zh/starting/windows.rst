@@ -60,9 +60,10 @@ windows上的环境配置
         west zephyr-export
 
 #. 安装zephyr所需的python依赖
+
     .. code-block:: console
 
-        pip3 install -r %workspace%\zephyr\scripts\requirements.txt
+        pip3 install -r zephyr\scripts\requirements.txt
 
 #. 增加hpm_sdk相关补丁
 
@@ -70,10 +71,22 @@ windows上的环境配置
 
         west supply
 
-安装zephyr的工具链包
+配置工具链
 --------------------
-    下载zephyr的编译工具 `ZEPHYR-SDK <https://github.com/zephyrproject-rtos/sdk-ng/tags/>`_
-    
+
+支持多种工具链，请根据您的需求选择其中一种进行安装和配置。
+
+.. note::
+
+   如果您已经有可用的 RISC-V 工具链，可以跳过安装步骤，直接配置环境变量即可。详细的工具链配置和切换方法请参阅 :doc:`toolchain` 章节。
+
+Zephyr SDK
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Zephyr 官方 SDK，功能完整，兼容性最佳。
+
+下载地址：`ZEPHYR-SDK <https://github.com/zephyrproject-rtos/sdk-ng/releases/>`_
+
 #. 命令行安装
 
     .. code-block:: console
@@ -88,6 +101,39 @@ windows上的环境配置
 
         cd zephyr-sdk-0.16.5
         setup.cmd
+
+zcc 工具链
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+zcc 是基于 LLVM/Clang 的工具链，下载体积小，编译速度快。
+
+#. 下载并解压 zcc 工具链
+
+    请从相应渠道获取 zcc 工具链包并解压到指定目录
+
+#. 配置环境变量（在 cmd 中）
+
+    .. code-block:: console
+
+        set ZEPHYR_TOOLCHAIN_VARIANT=zcc
+        set ZCC_TOOLCHAIN_PATH=C:\sdk_env\toolchains\zcc-4.1.5\
+        set TOOLCHAIN_ROOT=%workspace%\sdk_glue\
+
+    建议将以上环境变量添加到系统环境变量中以便持久化。
+
+GNU 交叉编译工具链
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+如果您已有 RISC-V GCC 工具链，可以直接使用。
+
+#. 配置环境变量（在 cmd 中）
+
+    .. code-block:: console
+
+        set ZEPHYR_TOOLCHAIN_VARIANT=cross-compile
+        set CROSS_COMPILE=C:\path\to\riscv32-unknown-elf-gcc\bin\riscv32-unknown-elf-
+
+    请将 ``C:\path\to\riscv32-unknown-elf-gcc`` 替换为您的工具链实际安装路径
 
 编译zephyr的button sample
 --------------------------

@@ -60,9 +60,10 @@ Setting Up Workspace
         west zephyr-export
 
 #. Install Zephyr Python dependencies
+
     .. code-block:: console
 
-        pip3 install -r %workspace%\zephyr\scripts\requirements.txt
+        pip3 install -r zephyr\scripts\requirements.txt
 
 #. Apply HPM_SDK patches
 
@@ -70,10 +71,22 @@ Setting Up Workspace
 
         west supply
 
-Installing Zephyr Toolchain
-----------------------------
-    Download Zephyr SDK `ZEPHYR-SDK <https://github.com/zephyrproject-rtos/sdk-ng/tags/>`_
-    
+Configuring Toolchain
+----------------------
+
+Multiple toolchains are supported. Choose one based on your needs.
+
+.. note::
+
+   If you already have a RISC-V toolchain, you can skip the installation and configure environment variables directly. For detailed toolchain configuration and switching methods, refer to the :doc:`toolchain` section.
+
+Zephyr SDK
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Official Zephyr SDK with full functionality and best compatibility.
+
+Download from: `ZEPHYR-SDK <https://github.com/zephyrproject-rtos/sdk-ng/releases/>`_
+
 #. Command-line installation
 
     .. code-block:: console
@@ -88,6 +101,39 @@ Installing Zephyr Toolchain
 
         cd zephyr-sdk-0.16.5
         setup.cmd
+
+zcc Toolchain
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+zcc is an LLVM/Clang-based toolchain with smaller download size and fast compilation.
+
+#. Download and extract zcc toolchain
+
+    Obtain the zcc toolchain package from the appropriate channel and extract to a directory
+
+#. Configure environment variables (in cmd)
+
+    .. code-block:: console
+
+        set ZEPHYR_TOOLCHAIN_VARIANT=zcc
+        set ZCC_TOOLCHAIN_PATH=C:\sdk_env\toolchains\zcc-4.1.5\
+        set TOOLCHAIN_ROOT=%workspace%\sdk_glue\
+
+    It is recommended to add these to system environment variables for persistence.
+
+GNU Cross-Compile Toolchain
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you already have a RISC-V GCC toolchain, you can use it directly.
+
+#. Configure environment variables (in cmd)
+
+    .. code-block:: console
+
+        set ZEPHYR_TOOLCHAIN_VARIANT=cross-compile
+        set CROSS_COMPILE=C:\path\to\riscv32-unknown-elf-gcc\bin\riscv32-unknown-elf-
+
+    Replace ``C:\path\to\riscv32-unknown-elf-gcc`` with your actual toolchain installation path
 
 Building Zephyr Button Sample
 ------------------------------
