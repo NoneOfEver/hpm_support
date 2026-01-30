@@ -37,7 +37,8 @@ html_show_sphinx = False
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'sphinx_rtd_theme'
-# html_static_path = ['_static']
+html_static_path = ['_static']
+html_css_files = ['custom.css']
 
 source_suffix = {
     '.rst': 'restructuredtext',
@@ -49,4 +50,5 @@ external_content_contents = [
     (HPM_ZSG_BASE, "samples/**/*_en.rst",),
     (HPM_ZSG_BASE, "snippets/**/*_en.rst",),
     (HPM_ZSG_BASE / "docs/source/en", "[!_]*"),
+    (HPM_ZSG_BASE / "docs/source/en", "_static/**"),
 ]

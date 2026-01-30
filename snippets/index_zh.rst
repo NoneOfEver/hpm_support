@@ -5,6 +5,11 @@ Zephyr例程
 
 .. toctree::
     :maxdepth: 1
+
+    verified_samples_zh.rst
+
+.. toctree::
+    :maxdepth: 1
     :numbered:
 
     blinky/readme_zh.rst

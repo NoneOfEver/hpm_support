@@ -18,7 +18,6 @@
    samples/index_zh.rst
    snippets/index_zh.rst
    CHANGELOG
-   verified_samples_zh.rst
 
 Indices and tables
 ==================

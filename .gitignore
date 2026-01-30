@@ -11,9 +11,11 @@ sec_core_img.c
 docs/build/*
 docs/source/en/samples/*
 docs/source/en/snippets/*
+!docs/source/en/snippets/verified_samples_en.rst
 docs/source/en/CHANGELOG.md
 docs/source/zh/samples/*
 docs/source/zh/snippets/*
+!docs/source/zh/snippets/verified_samples_zh.rst
 docs/source/zh/CHANGELOG.md
 
 
