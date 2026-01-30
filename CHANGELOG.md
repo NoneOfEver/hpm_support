@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.7.0] - 2025.1.4
+## [0.7.0]: 2026.1.30
 
 All changes since 0.6.0
 
@@ -116,7 +116,7 @@ All changes since 0.6.0
   - sdk_glue/samples/cherryusb/host/cdc_acm
   - sdk_glue/samples/cherryusb/host/msc_disk
 
-## [0.6.0] - 2025.8.4
+## [0.6.0]: 2025.8.4
 
 All changes since 0.5.0
 
@@ -127,7 +127,7 @@ All changes since 0.5.0
 - update openocd runner scripts
 - update sdk_env to v1.10.0
 
-## [0.5.0] - 2025.5.25
+## [0.5.0]: 2025.5.25
 
 All changes since 0.2.0
 
@@ -144,7 +144,7 @@ All changes since 0.2.0
   - [add] samples: add cherryusb host cdc acm sample
   - [add] samples: cherryusb: add msc disk sample 
 
-## [0.2.0] - 2024.11.12:
+## [0.2.0]: 2024.11.12:
 
 All changes since 0.1.0
 
@@ -168,7 +168,7 @@ All changes since 0.1.0
   - snippets: add sample snippets support
   - west: adapt for zephyr v3.7.0
 
-## [0.1.0]:
+## [0.1.0]: 2024.7.31
 
 ### Added:
   - scripts: add generate clock name script 
