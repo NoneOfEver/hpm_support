@@ -26,11 +26,8 @@ manifest:
 
   projects:
     - name: zephyr
-      remote: test
-      repo-path: hpm_zephyrproject
-      revision: release_v0.7.0_zsg
-      # repo-path: zephyr
-      # revision: zsg_v0.6.0
+      repo-path: zephyr
+      revision: zsg_v0.7.0
       import:
         name-allowlist:
           - west-commands
