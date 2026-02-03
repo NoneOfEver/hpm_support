@@ -1,7 +1,7 @@
 .. _supported_samples_en:
 
-Supported Samples
-==================
+Board Supported Matrix
+=======================
 
 The following samples have been verified on supported development boards.
 

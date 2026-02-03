@@ -1,6 +1,6 @@
 .. _blinky_pwm:
 
-pwm驱动灯闪烁
+PWM 驱动灯闪烁
 ==============
 `zephyr sample link <https://docs.zephyrproject.org/3.7.0/samples/basic/blinky_pwm/README.html>`_
 

@@ -20,20 +20,20 @@ Supported Toolchains
    * - Zephyr SDK
      - ``zephyr``
      - Official Zephyr SDK, supports multiple architectures
-   * - zcc
+   * - ZCC
      - ``zcc``
      - LLVM/Clang-based toolchain
    * - Cross-compile
      - ``cross-compile``
      - Generic cross-compilation toolchain
 
-Using the zcc Toolchain
+Using the ZCC Toolchain
 =======================
 
 Environment Variable Setup
 --------------------------
 
-Before using the zcc toolchain, you need to set the following environment variables:
+Before using the ZCC toolchain, you need to set the following environment variables:
 
 .. code-block:: bash
 
@@ -57,7 +57,7 @@ Environment Variable Description
    * - ``ZEPHYR_TOOLCHAIN_VARIANT``
      - Specifies the toolchain type to use. Zephyr loads the corresponding toolchain configuration based on this variable.
    * - ``ZCC_TOOLCHAIN_PATH``
-     - Installation path of the zcc toolchain. Should point to the toolchain's root directory (parent of the bin directory).
+     - Installation path of the ZCC toolchain. Should point to the toolchain's root directory (parent of the bin directory).
    * - ``TOOLCHAIN_ROOT``
      - Root directory of toolchain adaptation files, typically pointing to the path containing the ``cmake/`` directory.
 
@@ -74,7 +74,7 @@ Quick Start
         export TOOLCHAIN_ROOT=~/workspace/sdk_glue/
         EOF
 
-#. Activate the zcc toolchain environment
+#. Activate the ZCC toolchain environment
 
     .. code-block:: bash
 

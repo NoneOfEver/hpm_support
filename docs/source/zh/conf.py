@@ -13,7 +13,7 @@ import datetime
 from pathlib import Path
 
 HPM_ZSG_BASE = Path(__file__).resolve().parents[3]
-project = 'HPMicro Supplemental Development Kit'
+project = 'Zephyr SDK Glue'
 copyright = '2024-%s, HPMicro' % datetime.date.today().year
 author = '先楫半导体软件组'
 sys.path.insert(0, str(HPM_ZSG_BASE / "docs" / "_ext"))

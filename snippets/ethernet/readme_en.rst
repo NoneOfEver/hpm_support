@@ -1,6 +1,6 @@
 .. _ethernet:
 
-Echo_Server
+Echo Server
 ============
 `zephyr sample link <https://docs.zephyrproject.org/3.7.0/samples/net/sockets/echo_server/README.html>`_
 

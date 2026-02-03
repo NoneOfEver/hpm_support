@@ -117,14 +117,14 @@ Zephyr 官方 SDK，功能完整，兼容性最佳。
         cd zephyr-sdk-0.16.5
         ./setup.sh
 
-zcc 工具链
+ZCC 工具链
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-zcc 是基于 LLVM/Clang 的工具链，下载体积小，编译速度快。
+ZCC 是基于 LLVM/Clang 的工具链，下载体积小，编译速度快。
 
-#. 下载并解压 zcc 工具链
+#. 下载并解压 ZCC 工具链
 
-    请从相应渠道获取 zcc 工具链包并解压到指定目录，例如 ``~/sdk_env/toolchains/zcc-4.1.5/``
+    请从相应渠道获取 ZCC 工具链包并解压到指定目录，例如 ``~/sdk_env/toolchains/zcc-4.1.5/``
 
 #. 配置环境变量
 

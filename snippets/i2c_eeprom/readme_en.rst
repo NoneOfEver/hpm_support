@@ -1,6 +1,6 @@
 .. _i2c_eeprom:
 
-Eeprom
+EEPROM
 =======
 `zephyr sample link <https://docs.zephyrproject.org/3.7.0/samples/drivers/eeprom/README.html>`_
 

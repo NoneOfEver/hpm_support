@@ -1,7 +1,7 @@
 .. _canopennode:
 
-Canopen
-========================
+CANopen
+=======
 `zephyr sample link <https://docs.zephyrproject.org/3.7.0/samples/modules/canopennode/README.html>`_
 
 Overview

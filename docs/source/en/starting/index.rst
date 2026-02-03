@@ -14,7 +14,7 @@ HPMicro Zephyr supports multiple toolchains. You can choose based on your needs:
      - Description
    * - **Zephyr SDK**
      - Official Zephyr SDK with full functionality and best compatibility. Slower download speed
-   * - **zcc Toolchain**
+   * - **ZCC Toolchain**
      - LLVM/Clang-based toolchain with fast download and excellent performance
    * - **GNU Cross-Compile Toolchain**
      - Use your existing RISC-V GCC toolchain

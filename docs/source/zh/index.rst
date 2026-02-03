@@ -3,25 +3,16 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-欢迎使用先楫zephyr开发包
-============================================
+Zephyr SDK Glue - HPMicro
+==========================
 
+**Zephyr SDK Glue** 通过套接 HPM_SDK 来适配 Zephyr 驱动框架，包含 HPMicro MCU 适配 Zephyr 所需的所有源程序文件。
 
-
-目录
-==================
+本项目遵循 **Apache License 2.0** 开源许可协议。
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    starting/index.rst
    samples/index_zh.rst
-   snippets/index_zh.rst
    CHANGELOG
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

@@ -102,14 +102,14 @@ Download from: `ZEPHYR-SDK <https://github.com/zephyrproject-rtos/sdk-ng/release
         cd zephyr-sdk-0.16.5
         setup.cmd
 
-zcc Toolchain
+ZCC Toolchain
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-zcc is an LLVM/Clang-based toolchain with smaller download size and fast compilation.
+ZCC is an LLVM/Clang-based toolchain with smaller download size and fast compilation.
 
-#. Download and extract zcc toolchain
+#. Download and extract ZCC toolchain
 
-    Obtain the zcc toolchain package from the appropriate channel and extract to a directory
+    Obtain the ZCC toolchain package from the appropriate channel and extract to a directory, e.g., ``C:\sdk_env\toolchains\zcc-4.1.5\``
 
 #. Configure environment variables (in cmd)
 
@@ -173,7 +173,7 @@ Additional Commands
 
     .. code-block:: console
 
-        west boards | grep hpm
+        west boards | findstr hpm
 
 #. Start GDB server (connect board first)
 

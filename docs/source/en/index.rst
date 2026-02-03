@@ -3,23 +3,16 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to hpmicro sdk glue's documentation!
-============================================
+Zephyr SDK Glue - HPMicro
+==========================
 
-Catalogue
-==================
+**Zephyr SDK Glue** adapts the Zephyr driver framework by bridging HPM_SDK, containing all source files required for HPMicro MCU to adapt to Zephyr.
+
+This project follows the **Apache License 2.0** open source license.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    starting/index.rst
-   samples/index_en
-   snippets/index_en.rst
+   samples/index_en.rst
    CHANGELOG
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

@@ -1,6 +1,6 @@
 .. _display_lvds:
 
-Display Lvds
+Display LVDS
 ==================
 `zephyr sample link <https://docs.zephyrproject.org/3.7.0/samples/drivers/display/README.html>`_
 

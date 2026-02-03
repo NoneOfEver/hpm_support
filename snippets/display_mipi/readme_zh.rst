@@ -1,7 +1,7 @@
 .. _display_mipi:
 
-Display Mipi
-==================
+Display MIPI
+============
 `zephyr sample link <https://docs.zephyrproject.org/3.7.0/samples/drivers/display/README.html>`_
 
 路径

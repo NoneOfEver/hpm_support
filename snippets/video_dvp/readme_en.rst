@@ -1,6 +1,6 @@
 .. _video_dvp:
 
-Video Dvp
+Video DVP
 ===========
 `zephyr sample link <https://docs.zephyrproject.org/3.7.0/samples/subsys/video/capture/README.html>`_
 

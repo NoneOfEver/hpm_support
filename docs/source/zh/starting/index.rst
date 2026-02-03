@@ -14,7 +14,7 @@ HPMicro Zephyr 支持多种编译工具链，您可以根据实际情况选择�
      - 说明
    * - **Zephyr SDK**
      - Zephyr 官方 SDK，功能完整，兼容性最佳。但下载速度较慢
-   * - **zcc 工具链**
+   * - **ZCC 工具链**
      - 基于 LLVM/Clang，下载快速，性能优秀
    * - **GNU 交叉编译工具链**
      - 使用已有的 RISC-V GCC 工具链

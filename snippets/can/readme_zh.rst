@@ -1,7 +1,7 @@
 .. _can:
 
-Can (enable can-fd as default)
-==================================
+CAN (Enable CAN-FD As Default)
+==============================
 
 路径
 ---------------

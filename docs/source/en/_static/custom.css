@@ -3,3 +3,18 @@
     text-align: center;
     vertical-align: middle;
 }
+
+/* Remove bullet points (·) from numbered toctree lists, keep numbers only */
+.toctree-wrapper > ol li::before,
+.toctree-wrapper > ul li::before {
+    content: none !important;
+}
+
+/* Ensure ordered lists show numbers, not bullets */
+.toctree-wrapper > ol {
+    list-style-type: decimal;
+}
+
+.toctree-wrapper > ol li {
+    list-style-type: decimal;
+}

@@ -1,6 +1,6 @@
 .. _blinky_pwm:
 
-Pwm Blinky
+PWM Blinky
 ============
 `zephyr sample link <https://docs.zephyrproject.org/3.7.0/samples/basic/blinky_pwm/README.html>`_
 

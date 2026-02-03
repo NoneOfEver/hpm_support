@@ -20,20 +20,20 @@ Zephyr RTOS 支持多种工具链，包括 GCC、Clang、IAR、以及自定义�
    * - Zephyr SDK
      - ``zephyr``
      - Zephyr 官方 SDK，支持多种架构
-   * - zcc
+   * - ZCC
      - ``zcc``
      - 基于 LLVM/Clang 的工具链
    * - 交叉编译
      - ``cross-compile``
      - 通用交叉编译工具链
 
-zcc 工具链使用
+ZCC 工具链使用
 ==============
 
 环境变量设置
 ------------
 
-在使用 zcc 工具链之前，需要设置以下环境变量：
+在使用 ZCC 工具链之前，需要设置以下环境变量：
 
 .. code-block:: bash
 
@@ -57,7 +57,7 @@ zcc 工具链使用
    * - ``ZEPHYR_TOOLCHAIN_VARIANT``
      - 指定要使用的工具链类型，Zephyr 会根据这个变量加载对应的工具链配置
    * - ``ZCC_TOOLCHAIN_PATH``
-     - zcc 工具链的安装路径，应指向工具链的根目录（bin 目录的上级）
+     - ZCC 工具链的安装路径，应指向工具链的根目录（bin 目录的上级），例如 ``~/sdk_env/toolchains/zcc-4.1.5/``
    * - ``TOOLCHAIN_ROOT``
      - 工具链适配文件的根目录，通常指向包含 ``cmake/`` 目录的路径
 

@@ -1,7 +1,7 @@
 .. _display_rgb:
 
-Display Rgb
-==================
+Display RGB
+===========
 `zephyr sample link <https://docs.zephyrproject.org/3.7.0/samples/drivers/display/README.html>`_
 
 路径
