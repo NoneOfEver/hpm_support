@@ -34,8 +34,8 @@ Docker 环境配置
 
    从以下地址下载镜像包：
 
-   - 
-   - 或其他分发渠道获取 ``zephyr-hpmicro-latest.tar.gz`` 文件
+   - `docker <https://resource.hpmicro.com/zephyr-hpmicro-latest.tar.gz>`_
+   - 其他分发渠道获取 ``zephyr-hpmicro-latest.tar.gz`` 文件
 
 #. 加载镜像
 

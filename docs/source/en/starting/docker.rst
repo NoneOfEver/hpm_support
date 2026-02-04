@@ -34,8 +34,8 @@ Users in China are recommended to download the image package and load it locally
 
    Download the image package from the following address:
 
-   - 
-   - Or obtain the ``zephyr-hpmicro-latest.tar.gz`` file from other distribution channels
+   - `docker <https://resource.hpmicro.com/zephyr-hpmicro-latest.tar.gz>`_
+   - obtain the ``zephyr-hpmicro-latest.tar.gz`` file from other distribution channels
 
 #. Load the image
 
