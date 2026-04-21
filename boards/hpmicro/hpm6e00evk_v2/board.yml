@@ -1,0 +1,5 @@
+board:
+  name: hpm6e00evk_v2
+  vendor: hpmicro
+  socs:
+    - name: hpm6e80

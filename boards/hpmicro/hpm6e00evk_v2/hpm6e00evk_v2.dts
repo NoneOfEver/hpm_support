@@ -1,0 +1,243 @@
+/*
+ * Copyright 2025 HPMicro
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+
+#include <hpmicro/hpm6e80.dtsi>
+#include "hpm6e00evk_v2-pinctrl.dtsi"
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+
+/ {
+	model = "HPMicro HPM6E00EVK V2";
+	compatible = "HPMicro,hpm6e00evk-v2";
+
+	aliases {
+		led0 = &led_r;
+		led1 = &led_g;
+		led2 = &led_b;
+		sw0 = &pbutn;
+		eeprom-0 = &eeprom;
+	};
+
+	chosen {
+		zephyr,console = &uart0;
+		zephyr,shell-uart = &uart0;
+		zephyr,uart-mcumgr = &uart1;
+		zephyr,sram = &sram;
+		zephyr,flash = &flash0;
+		zephyr,itcm = &ilm;
+		zephyr,dtcm = &dlm;
+		zephyr,code-partition = &slot0_partition;
+		zephyr,flash-controller = &xpi0;
+	};
+
+	dram: memory@40000000 {
+		device_type = "memory";
+		reg = <0x40000000 DT_SIZE_M(32)>;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		led_r: led_r {
+			gpios = <&gpioe 14 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			label = "LEDR";
+		};
+		led_g: led_g {
+			gpios = <&gpioe 15 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			label = "LEDG";
+		};
+		led_b: led_b {
+			gpios = <&gpioe 4 (GPIO_PULL_DOWN | GPIO_ACTIVE_HIGH)>;
+			label = "LEDB";
+		};
+	};
+
+	gpio_keys {
+		compatible = "gpio-keys";
+		pbutn: pbutn {
+			gpios = <&gpiob 24 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			zephyr,code = <INPUT_KEY_0>;
+		};
+		wbutn: wbutn {
+			gpios = <&gpiob 25 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			zephyr,code = <INPUT_KEY_1>;
+		};
+	};
+};
+
+&uart0 {
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&pinmux_uart0>;
+	pinctrl-names = "default";
+	uart-idle-trgm-reg = <0xF022C000>;
+	uart-idle-trgm-pin = <115>;
+	uart-idle-trgm-input-src = <0x0B>;
+	uart-idle-trgm-output-gptmr-in = <0x38>;
+	uart-idle-trgm-output-gptmr-sync = <0x37>;
+	uart-idle-gptmr-reg = <0xF3010000>;
+	uart-idle-gptmr-clock-name = <18743311>;
+	dmas = <&hdma 0 8>, <&hdma 1 9>;
+	dma-names = "rx", "tx";
+};
+
+&uart1 {
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&pinmux_uart1>;
+	pinctrl-names = "default";
+	uart-idle-trgm-reg = <0xF022C000>;
+	uart-idle-trgm-pin = <115>;
+	uart-idle-trgm-input-src = <0x0B>;
+	uart-idle-trgm-output-gptmr-in = <0x38>;
+	uart-idle-trgm-output-gptmr-sync = <0x37>;
+	uart-idle-gptmr-reg = <0xF3010000>;
+	uart-idle-gptmr-clock-name = <18743311>;
+	dmas = <&hdma 2 10>, <&hdma 3 11>;
+	dma-names = "rx", "tx";
+};
+
+&gpioa {
+	pinctrl-0 = <&pinmux_gpioa>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&gpiob {
+	pinctrl-0 = <&pinmux_gpiob>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&gpioe {
+	pinctrl-0 = <&pinmux_gpioe>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&gpiof {
+	pinctrl-0 = <&pinmux_gpiof>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&gpioz {
+	pinctrl-0 = <&pinmux_gpioz>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&gpioy {
+	pinctrl-0 = <&pinmux_gpioy>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&i2c1 {
+	status = "disabled";
+	pinctrl-0 = <&pinmux_i2c1>;
+	pinctrl-names = "default";
+
+	eeprom: eeprom@50 {
+		compatible = "atmel,at24";
+		status = "disabled";
+		reg = <0x50>;
+		size = <16384>;
+		address-width = <16>;
+		timeout = <25>;
+		pagesize = <64>;
+	};
+};
+
+&spi7 {
+	status = "disabled";
+	pinctrl-0 = <&pinmux_spi7>;
+	pinctrl-names = "default";
+	cs-gpios = <&gpiof 27 GPIO_ACTIVE_LOW>;
+	dmas = <&hdma 0 4>, <&hdma 1 5>;
+	dma-names = "rx", "tx";
+};
+
+&hdma {
+	status = "okay";
+};
+
+&xdma {
+	status = "okay";
+};
+
+&xpi0 {
+	status = "okay";
+	flash0: flash@0 {
+		compatible = "hpmicro,hpmicro-flash", "soc-nv-flash";
+		reg = <0x80000000 DT_SIZE_M(16)>;
+		status = "okay";
+		erase-block-size = <4096>;
+		write-block-size = <1>;
+		nor-cfg-opt-hdr = <0xfcf90001>;
+		nor-cfg-opt-opt0 = <0x05>;
+		nor-cfg-opt-opt1 = <0x1000>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			boot_partition: partition@0 {
+				label = "mcuboot";
+				reg = <0x3000 0x40000>;
+			};
+
+			slot0_partition: partition@43000 {
+				label = "image-0";
+				reg = <0x43000 DT_SIZE_K(1536)>;
+			};
+
+			slot1_partition: partition@1c3000 {
+				label = "image-1";
+				reg = <0x1c3000 DT_SIZE_K(1536)>;
+			};
+
+			scratch_partition: partition@343000 {
+				label = "image-scratch";
+				reg = <0x343000 DT_SIZE_K(128)>;
+			};
+
+			storage_partition: partition@363000 {
+				label = "storage";
+				reg = <0x363000 DT_SIZE_K(128)>;
+			};
+		};
+	};
+};
+
+&usb0 {
+	pinctrl-0 = <&pinmux_usb0>;
+	pinctrl-names = "default";
+};
+
+zephyr_udc0: &usb0 {
+	compatible = "hpmicro,hpm-udc";
+	status = "disabled";
+};
+
+cherryusb_usb0: &usb0 {
+	compatible = "hpmicro,hpm-cherryusb";
+	status = "okay";
+};
+
+&eth0 {
+    pinctrl-0 = <&pinmux_eth_rgmii>;
+    pinctrl-names = "default";
+	phy-addr = <2>;
+	reset-gpios = <&gpioa 14 GPIO_ACTIVE_LOW>;
+    status = "disabled";
+};
+
+&mcan4 {
+	status = "okay";
+	pinctrl-0 = <&pinmux_mcan4>;
+	pinctrl-names = "default";
+};
