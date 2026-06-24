@@ -8,6 +8,7 @@ DT_COMPAT_HPM_CAN := hpmicro,hpm-can
 config CAN_HPMICRO
 	bool "HPMICRO CAN driver"
 	default y
+	depends on CAN
 	depends on DT_HAS_HPMICRO_HPM_CAN_ENABLED
     select HAS_HPMSDK_CAN
     help
@@ -18,6 +19,7 @@ DT_COMPAT_HPM_MCAN := hpmicro,hpm-mcan
 config MCAN_HPMICRO
 	bool "HPMICRO MCAN driver"
 	default y
+	depends on CAN
 	depends on DT_HAS_HPMICRO_HPM_MCAN_ENABLED
     select HAS_HPMSDK_MCAN
     help

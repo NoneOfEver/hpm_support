@@ -328,18 +328,61 @@
             interrupt-names = "uart", "idletimer";
             clocks = <&clk CLOCK_UART0 CLK_SRC_OSC24M 1>;
             interrupt-parent = <&plic>;
-            status = "disabled";
+            status = "okay";
         };
+		uart2: serial@f0048000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf0048000 0x1000>;
+			interrupts = <33 1>;
+			interrupt-parent = <&plic>;
+			clocks = <&clk CLOCK_UART2 CLK_SRC_PLL1_CLK1 5>;
+            status = "disabled";
+		};
 
-        uart13: serial@f0074000 {
-            compatible = "hpmicro,hpm-uart";
-            reg = <0xf0074000 0x1000>;
-            interrupts = <44 1>, <65 1>;
-            interrupt-names = "uart", "idletimer";
-            clocks = <&clk CLOCK_UART13 CLK_SRC_OSC24M 1>;
-            interrupt-parent = <&plic>;
+		uart3: serial@f004c000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf004c000 0x1000>;
+			interrupts = <34 1>;
+			interrupt-parent = <&plic>;
+			clocks = <&clk CLOCK_UART3 CLK_SRC_PLL1_CLK1 5>;
             status = "disabled";
-        };
+		};
+
+		uart10: serial@f0068000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf0068000 0x1000>;
+			interrupts = <41 1>;
+			interrupt-parent = <&plic>;
+			clocks = <&clk CLOCK_UART10 CLK_SRC_PLL1_CLK1 5>;
+            status = "disabled";
+		};
+
+		uart11: serial@f006c000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf006c000 0x1000>;
+			interrupts = <42 1>;
+			interrupt-parent = <&plic>;
+			clocks = <&clk CLOCK_UART11 CLK_SRC_PLL1_CLK1 5>;
+            status = "disabled";
+		};
+
+		uart12: serial@f0070000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf0070000 0x1000>;
+			interrupts = <43 1>;
+			interrupt-parent = <&plic>;
+			clocks = <&clk CLOCK_UART12 CLK_SRC_PLL1_CLK1 5>;
+            status = "disabled";
+		};
+
+		uart15: serial@f007c000 {
+			compatible = "hpmicro,hpm-uart";
+			reg = <0xf007c000 0x1000>;
+			interrupts = <46 1>;
+			interrupt-parent = <&plic>;
+			clocks = <&clk CLOCK_UART15 CLK_SRC_PLL1_CLK1 5>;
+            status = "disabled";
+		};
 
         pinctrl: pin-controller@f4040000 {
             compatible = "hpmicro,hpm-pinctrl";
@@ -432,7 +475,7 @@
         spi2: spi@f0038000 {
             compatible = "hpmicro,hpm-spi";
             reg = <0xf0038000 0x4000>;
-            clocks = <&clk CLOCK_SPI2 CLK_SRC_PLL1_CLK1 8>;
+            clocks = <&clk CLOCK_SPI2 CLK_SRC_PLL1_CLK1 5>;
             interrupts = <29 1>;
             interrupt-parent = <&plic>;
             status = "disabled";
@@ -565,11 +608,43 @@
                 reg = <0xf0080000 0x4000>;
                 interrupts = <47 1>;
                 interrupt-parent = <&plic>;
-                clk-name = <20578347>;
-                clk-source = <3>;
+                clk-name = <CLOCK_CAN0>;
+                clk-source = <CLK_SRC_PLL1_CLK1>;
                 clk-divider = <5>;
-                bus-speed = <500000>;
-                status = "disabled";
+                status = "okay";
+        };
+
+        can1: can@f0084000 {
+            compatible = "hpmicro,hpm-can";
+            reg = <0xf0084000 0x4000>;
+            interrupts = <48 1>;
+            interrupt-parent = <&plic>;
+            clk-name = <CLOCK_CAN1>;
+            clk-source = <CLK_SRC_PLL1_CLK1>;
+            clk-divider = <5>;
+            status = "okay";
+        };
+
+        can2: can@f0088000 {
+            compatible = "hpmicro,hpm-can";
+            reg = <0xf0088000 0x4000>;
+            interrupts = <49 1>;
+            interrupt-parent = <&plic>;
+            clk-name = <CLOCK_CAN2>;
+            clk-source = <CLK_SRC_PLL1_CLK1>;
+            clk-divider = <5>;
+            status = "okay";
+        };
+
+        can3: can@f008c000 {
+            compatible = "hpmicro,hpm-can";
+            reg = <0xf008c000 0x4000>;
+            interrupts = <50 1>;
+            interrupt-parent = <&plic>;
+            clk-name = <CLOCK_CAN3>;
+            clk-source = <CLK_SRC_PLL1_CLK1>;
+            clk-divider = <5>;
+            status = "okay";
         };
 
         display {
@@ -610,14 +685,27 @@
             status = "disabled";
         };
 
+        sd0: sdxc@f2030000 {
+            compatible = "hpmicro,hpm-sdhc";
+            reg = <0xf2030000 0x4000>;
+            interrupts = <110 1>;
+            interrupt-parent = <&plic>;
+            clk-name = <CLOCK_SDXC0>;
+            clk-source = <CLK_SRC_PLL1_CLK1>;
+            clk-divider = <2>;
+            max-bus-freq = <100000000>;
+            min-bus-freq = <400000>;
+            status = "disabled";
+        };
+
         sd: sdxc@f2034000 {
             compatible = "hpmicro,hpm-sdhc";
             reg = <0xf2034000 0x4000>;
             interrupts = <111 1>;
             interrupt-parent = <&plic>;
-            clk-name = <22609986>;
-            clk-source = <0>;
-            clk-divider = <63>;
+            clk-name = <CLOCK_SDXC1>;
+            clk-source = <CLK_SRC_PLL1_CLK1>;
+            clk-divider = <2>;
             max-bus-freq = <100000000>;
             min-bus-freq = <400000>;
             status = "disabled";

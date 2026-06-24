@@ -46,10 +46,10 @@ struct gpio_hpm_config {
 #endif /* CONFIG_PINCTRL */
 };
 
-/* max buffer = 256*512 + 128 adma desc; and satisfy 2^x non-cache buffer size*/
-#define DUMMY_BUF_LEN 0x40000 - 128
+/* max buffer = 256*512 + 128 adma desc; and satisfy 2^x non-cache buffer size */
+#define DUMMY_BUF_LEN_BYTES (0x40000U - 128U)
 #define CONFIG_HPM_SDHC_DMA_BUFFER_SIZE 128
-__attribute__((__section__(".nocache"))) static uint32_t dummy_buffer[DUMMY_BUF_LEN/4];
+__attribute__((__section__(".nocache"))) static uint32_t dummy_buffer[DUMMY_BUF_LEN_BYTES / 4U];
 extern uint32_t hpm_board_sd_configure_clock(SDXC_Type *ptr, uint32_t freq, bool need_inverse);
 
 struct hpm_sdhc_config {
@@ -99,6 +99,188 @@ struct hpm_sdhc_data {
 };
 
 static int hpm_sdhc_get_card_present(const struct device *dev);
+
+static bool hpm_sdhc_should_dump_command(uint32_t cmd_index)
+{
+    static uint32_t dump_count;
+
+    if ((dump_count < 24U) || (cmd_index == 0U)) {
+        dump_count++;
+        return true;
+    }
+
+    dump_count++;
+    return false;
+}
+
+#if defined(CONFIG_SOC_SERIES_HPM6700)
+static void hpm_sdhc_apply_hpm6750_sdxc0_pad_fixup(const struct device *dev)
+{
+    const struct hpm_sdhc_config *cfg = dev->config;
+
+    if (cfg->base != HPM_SDXC0) {
+        return;
+    }
+
+    /*
+     * HPM6750 SDK pinmux code sets bit 3 in PAD_CTL for SDXC pads, but
+     * the generated IOC header does not name this bit and Zephyr pinctrl
+     * cannot express it. Keep the DTS-owned settings and add the SDK bit.
+     */
+    HPM_IOC->PAD[IOC_PAD_PE21].PAD_CTL |= BIT(3);
+    HPM_IOC->PAD[IOC_PAD_PE22].PAD_CTL |= BIT(3);
+    HPM_IOC->PAD[IOC_PAD_PE23].PAD_CTL |= BIT(3);
+    HPM_IOC->PAD[IOC_PAD_PE26].PAD_CTL |= BIT(3);
+    HPM_IOC->PAD[IOC_PAD_PE27].PAD_CTL |= BIT(3);
+    HPM_IOC->PAD[IOC_PAD_PE28].PAD_CTL |= BIT(3);
+
+    /*
+     * Temporary mux cross-check: expose the alternate SDXC0 CMD/CLK pins
+     * too, so the board can be probed for an internal route mismatch.
+     */
+    HPM_IOC->PAD[IOC_PAD_PE10].FUNC_CTL = IOC_PE10_FUNC_CTL_SDC0_CMD |
+        IOC_PAD_FUNC_CTL_LOOP_BACK_MASK;
+    HPM_IOC->PAD[IOC_PAD_PE10].PAD_CTL = IOC_PAD_PAD_CTL_PE_SET(1) |
+        IOC_PAD_PAD_CTL_PS_SET(1) | IOC_PAD_PAD_CTL_DS_SET(6) | BIT(3);
+    HPM_IOC->PAD[IOC_PAD_PE11].FUNC_CTL = IOC_PE11_FUNC_CTL_SDC0_CLK |
+        IOC_PAD_FUNC_CTL_LOOP_BACK_MASK;
+    HPM_IOC->PAD[IOC_PAD_PE11].PAD_CTL = IOC_PAD_PAD_CTL_PE_SET(1) |
+        IOC_PAD_PAD_CTL_PS_SET(1) | IOC_PAD_PAD_CTL_DS_SET(7) | BIT(3);
+}
+
+static void hpm_sdhc_gpio_scope_probe(const struct device *dev)
+{
+    const struct hpm_sdhc_config *cfg = dev->config;
+    const uint32_t gpioe = GPIO_GET_PORT_INDEX(IOC_PAD_PE27);
+
+    if (cfg->base != HPM_SDXC0) {
+        return;
+    }
+
+    LOG_WRN("SDXC0 scope probe: toggling PE27/CLK and PE22/CMD as GPIO for 2s");
+
+    HPM_IOC->PAD[IOC_PAD_PE27].FUNC_CTL = IOC_PAD_FUNC_CTL_ALT_SELECT_SET(0);
+    HPM_IOC->PAD[IOC_PAD_PE27].PAD_CTL = IOC_PAD_PAD_CTL_DS_SET(7);
+    HPM_IOC->PAD[IOC_PAD_PE22].FUNC_CTL = IOC_PAD_FUNC_CTL_ALT_SELECT_SET(0);
+    HPM_IOC->PAD[IOC_PAD_PE22].PAD_CTL = IOC_PAD_PAD_CTL_DS_SET(7);
+
+    gpio_set_pin_output(HPM_GPIO0, gpioe, GPIO_GET_PIN_INDEX(IOC_PAD_PE27));
+    gpio_set_pin_output(HPM_GPIO0, gpioe, GPIO_GET_PIN_INDEX(IOC_PAD_PE22));
+
+    for (uint32_t i = 0; i < 2000U; i++) {
+        gpio_toggle_pin(HPM_GPIO0, gpioe, GPIO_GET_PIN_INDEX(IOC_PAD_PE27));
+        gpio_toggle_pin(HPM_GPIO0, gpioe, GPIO_GET_PIN_INDEX(IOC_PAD_PE22));
+        k_busy_wait(500U);
+    }
+
+    gpio_write_pin(HPM_GPIO0, gpioe, GPIO_GET_PIN_INDEX(IOC_PAD_PE27), 0);
+    gpio_write_pin(HPM_GPIO0, gpioe, GPIO_GET_PIN_INDEX(IOC_PAD_PE22), 1);
+    LOG_WRN("SDXC0 scope probe done; SDHC pinctrl will be applied next");
+}
+#endif
+
+static void hpm_sdhc_dump_hw_state(const struct device *dev, const char *tag)
+{
+    const struct hpm_sdhc_config *cfg = dev->config;
+    SDXC_Type *base = cfg->base;
+
+    LOG_DBG("%s: base=%p pstate=0x%08x prot=0x%08x sys=0x%08x "
+        "cmd_arg=0x%08x cmd_xfer=0x%08x int=0x%08x int_en=0x%08x sig_en=0x%08x",
+        tag, base, base->PSTATE, base->PROT_CTRL, base->SYS_CTRL,
+        base->CMD_ARG, base->CMD_XFER, base->INT_STAT, base->INT_STAT_EN,
+        base->INT_SIGNAL_EN);
+
+#if defined(CONFIG_SOC_SERIES_HPM6700)
+    if (base == HPM_SDXC0) {
+        LOG_DBG("%s: SDXC0 conctl_ctrl4=0x%08x cmd_lvl=%u dat3_0=0x%x cmd_inhibit=%u dat_inhibit=%u",
+            tag, HPM_CONCTL->CTRL4,
+            (uint32_t)SDXC_PSTATE_CMD_LINE_LVL_GET(base->PSTATE),
+            (uint32_t)SDXC_PSTATE_DAT_3_0_GET(base->PSTATE),
+            (uint32_t)SDXC_PSTATE_CMD_INHIBIT_GET(base->PSTATE),
+            (uint32_t)SDXC_PSTATE_DAT_INHIBIT_GET(base->PSTATE));
+        LOG_DBG("%s: SDXC0 IOC PE22/CMD func=0x%08x pad=0x%08x",
+            tag, HPM_IOC->PAD[IOC_PAD_PE22].FUNC_CTL,
+            HPM_IOC->PAD[IOC_PAD_PE22].PAD_CTL);
+        LOG_DBG("%s: SDXC0 IOC PE27/CLK func=0x%08x pad=0x%08x",
+            tag, HPM_IOC->PAD[IOC_PAD_PE27].FUNC_CTL,
+            HPM_IOC->PAD[IOC_PAD_PE27].PAD_CTL);
+        LOG_DBG("%s: SDXC0 ALT IOC PE10/CMD func=0x%08x pad=0x%08x",
+            tag, HPM_IOC->PAD[IOC_PAD_PE10].FUNC_CTL,
+            HPM_IOC->PAD[IOC_PAD_PE10].PAD_CTL);
+        LOG_DBG("%s: SDXC0 ALT IOC PE11/CLK func=0x%08x pad=0x%08x",
+            tag, HPM_IOC->PAD[IOC_PAD_PE11].FUNC_CTL,
+            HPM_IOC->PAD[IOC_PAD_PE11].PAD_CTL);
+    }
+#endif
+}
+
+static int hpm_sdhc_select_signal_voltage(SDXC_Type *base, enum sd_voltage voltage)
+{
+    uint32_t voltage_sel;
+
+    switch (voltage) {
+    case SD_VOL_3_3_V:
+        voltage_sel = 7U;
+        base->AC_HOST_CTRL &= ~SDXC_AC_HOST_CTRL_SIGNALING_EN_MASK;
+        break;
+    case SD_VOL_3_0_V:
+        voltage_sel = 6U;
+        base->AC_HOST_CTRL &= ~SDXC_AC_HOST_CTRL_SIGNALING_EN_MASK;
+        break;
+    case SD_VOL_1_8_V:
+        voltage_sel = 5U;
+        base->AC_HOST_CTRL |= SDXC_AC_HOST_CTRL_SIGNALING_EN_MASK;
+        break;
+    default:
+        return -ENOTSUP;
+    }
+
+    base->PROT_CTRL = (base->PROT_CTRL & ~SDXC_PROT_CTRL_SD_BUS_VOL_VDD1_MASK) |
+        SDXC_PROT_CTRL_SD_BUS_VOL_VDD1_SET(voltage_sel);
+
+    return 0;
+}
+
+static int hpm_sdhc_status_to_errno(hpm_stat_t status)
+{
+    switch (status) {
+    case status_success:
+        return 0;
+    case status_timeout:
+    case status_sdxc_cmd_timeout_error:
+    case status_sdxc_data_timeout_error:
+    case status_sdxc_autocmd_cmd_timeout_error:
+        return -ETIMEDOUT;
+    case status_sdxc_unsupported:
+        return -ENOTSUP;
+    case status_sdxc_busy:
+        return -EBUSY;
+    case status_invalid_argument:
+        return -EINVAL;
+    default:
+        return -EIO;
+    }
+}
+
+static bool hpm_sdhc_is_timeout_status(hpm_stat_t status)
+{
+    return (status == status_timeout) ||
+           (status == status_sdxc_cmd_timeout_error) ||
+           (status == status_sdxc_data_timeout_error) ||
+           (status == status_sdxc_autocmd_cmd_timeout_error);
+}
+
+static hpm_stat_t hpm_sdhc_wait_bus_idle(SDXC_Type *base)
+{
+    uint32_t wait_cnt = 1000U;
+
+    while (!sdxc_is_bus_idle(base) && (wait_cnt > 0U)) {
+        wait_cnt--;
+        k_msleep(1);
+    }
+
+    return (wait_cnt == 0U) ? status_timeout : status_success;
+}
 
 static void card_detect_gpio_cb(const struct device *port,
                 struct gpio_callback *cb,
@@ -200,6 +382,7 @@ static int hpm_sdhc_set_io(const struct device *dev, struct sdhc_io *ios)
     struct sdhc_io *host_io = &data->host_io;
     uint32_t bus_clk;
     SDXC_Type *base = cfg->base;
+    int ret;
 
     LOG_DBG("SDHC I/O: bus width %d, clock %dHz, card power %s, voltage %s",
         ios->bus_width,
@@ -216,7 +399,7 @@ static int hpm_sdhc_set_io(const struct device *dev, struct sdhc_io *ios)
     if (host_io->clock != ios->clock) {
         if (ios->clock != 0) {
             /* Enable the clock output */
-            if (ios->timing == SDHC_TIMING_DDR50) {
+            if ((ios->timing == SDHC_TIMING_DDR50) || (ios->clock <= SDMMC_CLOCK_400KHZ)) {
                 bus_clk = hpm_board_sd_configure_clock(base, ios->clock, false);
             } else {
                 bus_clk = hpm_board_sd_configure_clock(base, ios->clock, true);
@@ -225,6 +408,11 @@ static int hpm_sdhc_set_io(const struct device *dev, struct sdhc_io *ios)
             if (bus_clk == 0) {
                 return -ENOTSUP;
             }
+            if (ios->clock <= SDMMC_CLOCK_400KHZ) {
+                sdxc_wait_card_active(base);
+                k_msleep(10);
+            }
+            hpm_sdhc_dump_hw_state(dev, "after set clock");
         }
         host_io->clock = ios->clock;
     }
@@ -252,7 +440,10 @@ static int hpm_sdhc_set_io(const struct device *dev, struct sdhc_io *ios)
         switch (ios->signal_voltage) {
         case SD_VOL_3_3_V:
         case SD_VOL_3_0_V:
-            sdxc_select_voltage(base, sdxc_bus_voltage_sd_3v3);
+            ret = hpm_sdhc_select_signal_voltage(base, ios->signal_voltage);
+            if (ret != 0) {
+                return ret;
+            }
             break;
         case SD_VOL_1_8_V:
             /* 1. Stop providing clock to the card */
@@ -274,7 +465,10 @@ static int hpm_sdhc_set_io(const struct device *dev, struct sdhc_io *ios)
 
             gpio_set_pin_output_with_initial(HPM_GPIO0, port_num, cfg->vsel_gpio.pin, !cfg->vsel_gpios_polarity);
             /* 3. Switch signaling to 1.8v */
-            sdxc_select_voltage(base, sdxc_bus_voltage_sd_1v8);
+            ret = hpm_sdhc_select_signal_voltage(base, SD_VOL_1_8_V);
+            if (ret != 0) {
+                return ret;
+            }
             /* 4. delay 5ms */
             k_msleep(50);
             /* 5. Provide SD clock the card again */
@@ -404,9 +598,27 @@ static hpm_stat_t hpm_sdhc_send_command(const struct device *dev, sdxc_command_t
         return status_fail;
     }
 
+    bool dump_command = hpm_sdhc_should_dump_command(cmd->cmd_index);
+
+    status = hpm_sdhc_wait_bus_idle(base);
+    if (status != status_success) {
+        LOG_DBG("cmd%u wait bus idle failed pstate=0x%08x int=0x%08x",
+            cmd->cmd_index, base->PSTATE, base->INT_STAT);
+        return status;
+    }
+
+    if (dump_command) {
+        LOG_DBG("send cmd%u arg=0x%08x resp=0x%x",
+            cmd->cmd_index, cmd->cmd_argument, cmd->resp_type);
+        hpm_sdhc_dump_hw_state(dev, "before command");
+    }
     status = sdxc_send_command(base, cmd);
     if (status != status_success) {
+        LOG_DBG("cmd%u sdxc_send_command status=%d", cmd->cmd_index, status);
         return status;
+    }
+    if (dump_command) {
+        hpm_sdhc_dump_hw_state(dev, "after command write");
     }
 
     int64_t delay_cnt = 1000000;
@@ -430,13 +642,23 @@ static hpm_stat_t hpm_sdhc_send_command(const struct device *dev, sdxc_command_t
 
     if ((delay_cnt <= 0) && (!has_done_or_error)) {
         status = status_timeout;
+        if (dump_command) {
+            LOG_DBG("cmd%u wait complete timeout int=0x%08x pstate=0x%08x cmd_xfer=0x%08x prot=0x%08x sys=0x%08x",
+                cmd->cmd_index, int_stat, base->PSTATE, base->CMD_XFER, base->PROT_CTRL, base->SYS_CTRL);
+        }
         return status;
     }
     if (status != status_success) {
+        if (dump_command) {
+            LOG_DBG("cmd%u interrupt status=%d int=0x%08x pstate=0x%08x cmd_xfer=0x%08x prot=0x%08x sys=0x%08x",
+                cmd->cmd_index, status, int_stat, base->PSTATE, base->CMD_XFER, base->PROT_CTRL, base->SYS_CTRL);
+            hpm_sdhc_dump_hw_state(dev, "command error");
+        }
         return status;
     }
     status = sdxc_receive_cmd_response(base, cmd);
     sdxc_clear_interrupt_status(base, SDXC_INT_STAT_CMD_COMPLETE_MASK);
+    LOG_DBG("cmd%u response status=%d r0=0x%08x", cmd->cmd_index, status, cmd->response[0]);
 
     if (cmd->resp_type == (sdxc_dev_resp_type_t) sdmmc_resp_r1b) {
         uint32_t delay_ms = (cmd->cmd_timeout_ms == 0) ? 100 : cmd->cmd_timeout_ms;
@@ -457,11 +679,13 @@ static hpm_stat_t hpm_sdhc_send_command(const struct device *dev, sdxc_command_t
 
         if ((delay_cnt <= 0) && (!has_done_or_error)) {
             status = status_timeout;
+            LOG_DBG("cmd%u wait transfer timeout int=0x%08x", cmd->cmd_index, int_stat);
         }
 
         sdxc_clear_interrupt_status(base, SDXC_INT_STAT_XFER_COMPLETE_MASK);
     }
 
+    LOG_DBG("cmd%u done status=%d", cmd->cmd_index, status);
     return status;
 }
 
@@ -556,12 +780,13 @@ static hpm_stat_t hpm_sdhc_error_recovery(const struct device *dev)
 {
     const struct hpm_sdhc_config *cfg = dev->config;
     SDXC_Type *base = cfg->base;
-    sdxc_command_t *recovery_cmd = {0};
-    recovery_cmd->cmd_index = sdmmc_cmd_stop_transmission;
-    recovery_cmd->cmd_type = sdxc_cmd_type_abort_cmd;
-    recovery_cmd->resp_type = (sdxc_dev_resp_type_t) sdmmc_resp_r1b;
+    sdxc_command_t recovery_cmd = {0};
 
-    return sdxc_error_recovery(base, recovery_cmd);
+    recovery_cmd.cmd_index = sdmmc_cmd_stop_transmission;
+    recovery_cmd.cmd_type = sdxc_cmd_type_abort_cmd;
+    recovery_cmd.resp_type = (sdxc_dev_resp_type_t) sdmmc_resp_r1b;
+
+    return sdxc_error_recovery(base, &recovery_cmd);
 }
 
 /*
@@ -588,7 +813,7 @@ static hpm_stat_t hpm_sdhc_transfer(const struct device *dev, struct sdhc_comman
     }
 #endif
 
-    memset(&dummy_buffer, 0, DUMMY_BUF_LEN);
+    memset(dummy_buffer, 0, DUMMY_BUF_LEN_BYTES);
     memset(host_cmd, 0, sizeof(*host_cmd));
 
     host_cmd->cmd_index = cmd->opcode;
@@ -670,9 +895,12 @@ static hpm_stat_t hpm_sdhc_transfer(const struct device *dev, struct sdhc_comman
             }
             memcpy(cmd->response, host_content->command->response, sizeof(cmd->response));
             break;
+        } else if (hpm_sdhc_is_timeout_status(status)) {
+            break;
         } else if ((status >= status_sdxc_busy) && (status <= status_sdxc_tuning_failed)) {
             hpm_stat_t error_recovery_status = hpm_sdhc_error_recovery(dev);
             if (error_recovery_status != status_success) {
+                k_mutex_unlock(&dev_data->access_mutex);
                 return error_recovery_status;
             }
             retries --;
@@ -707,9 +935,12 @@ static int hpm_sdhc_cmd_send(const struct device *dev, struct sdhc_command *cmd,
         if (status == status_success) {
             memcpy(cmd->response, host_cmd.response, sizeof(cmd->response));
             break;
+        } else if (hpm_sdhc_is_timeout_status(status)) {
+            break;
         } else if ((status >= status_sdxc_busy) && (status <= status_sdxc_tuning_failed)) {
             hpm_stat_t error_recovery_status = hpm_sdhc_error_recovery(dev);
             if (error_recovery_status != status_success) {
+                k_mutex_unlock(&dev_data->access_mutex);
                 return error_recovery_status;
             }
             retries --;
@@ -749,11 +980,7 @@ static int hpm_sdhc_request(const struct device *dev, struct sdhc_command *cmd,
             status = hpm_sdhc_cmd_send(dev, cmd, data);
             break;
     }
-    if (status != status_success) {
-        return -EIO;
-    } else {
-        return 0;
-    }
+    return hpm_sdhc_status_to_errno(status);
 }
 
 /*
@@ -921,10 +1148,18 @@ static int hpm_sdhc_init(const struct device *dev)
     SDXC_Type *base = cfg->base;
     int ret;
 
+#if defined(CONFIG_SOC_SERIES_HPM6700)
+    hpm_sdhc_gpio_scope_probe(dev);
+#endif
+
     ret = pinctrl_apply_state(cfg->pincfg, PINCTRL_STATE_DEFAULT);
     if (ret) {
         return ret;
     }
+#if defined(CONFIG_SOC_SERIES_HPM6700)
+    hpm_sdhc_apply_hpm6750_sdxc0_pad_fixup(dev);
+#endif
+    hpm_sdhc_dump_hw_state(dev, "after pinctrl");
 
 #if defined(CONFIG_HPMICRO_BOARD_SUPPORT_EMMC)
     data->dev_type = sdmmc_dev_type_emmc;
@@ -941,6 +1176,9 @@ static int hpm_sdhc_init(const struct device *dev)
     sdxc_config.data_timeout = 1000; 
 
     sdxc_init(base, &sdxc_config);
+    sdxc_wait_card_active(base);
+    k_msleep(10);
+    hpm_sdhc_dump_hw_state(dev, "after sdxc_init");
 
 #if defined(CONFIG_HPMICRO_BOARD_SUPPORT_EMMC)
     sdxc_enable_emmc_support(base, true);
@@ -976,11 +1214,7 @@ static int hpm_sdhc_init(const struct device *dev)
     data->dev = dev;
     k_mutex_init(&data->access_mutex);
     /* Setup initial host IO values */
-#if !defined(CONFIG_HPMICRO_BOARD_SUPPORT_EMMC)
-    data->host_io.signal_voltage = SD_VOL_3_3_V;
-#else
-    data->host_io.signal_voltage = SD_VOL_1_8_V;
-#endif
+    data->host_io.signal_voltage = 0;
     data->host_io.clock = 0;
     data->host_io.bus_mode = SDHC_BUSMODE_PUSHPULL;
     data->host_io.power_mode = SDHC_POWER_OFF;

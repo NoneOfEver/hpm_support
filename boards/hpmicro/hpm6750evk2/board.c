@@ -13,6 +13,25 @@
 #include "hpm_femc_drv.h"
 #include "hpm_sdxc_drv.h"
 
+static void hpm_board_sd_set_clock_divider(SDXC_Type *ptr, uint32_t divider)
+{
+    divider &= 0x3FFU;
+    ptr->SYS_CTRL = (ptr->SYS_CTRL &
+            ~(SDXC_SYS_CTRL_FREQ_SEL_MASK |
+              SDXC_SYS_CTRL_UPPER_FREQ_SEL_MASK |
+              SDXC_SYS_CTRL_CLK_GEN_SELECT_MASK)) |
+            SDXC_SYS_CTRL_FREQ_SEL_SET(divider & 0xFFU) |
+            SDXC_SYS_CTRL_UPPER_FREQ_SEL_SET(divider >> 8);
+}
+
+static uint32_t hpm_board_sd_get_clock_divisor(SDXC_Type *ptr)
+{
+    uint32_t divider = SDXC_SYS_CTRL_FREQ_SEL_GET(ptr->SYS_CTRL) |
+            (SDXC_SYS_CTRL_UPPER_FREQ_SEL_GET(ptr->SYS_CTRL) << 8);
+
+    return (divider == 0U) ? 1U : (2U * divider);
+}
+
 uint32_t board_init_femc_clock(void)
 {
     clock_set_source_divider(clock_femc, clk_src_pll2_clk0, 2U); /* 166Mhz */
@@ -89,12 +108,14 @@ uint32_t hpm_board_sd_configure_clock(SDXC_Type *ptr, uint32_t freq, bool need_i
 {
     uint32_t actual_freq = 0;
     do {
-        if (ptr != HPM_SDXC1) {
+        if ((ptr != HPM_SDXC0) && (ptr != HPM_SDXC1)) {
             break;
         }
         clock_name_t sdxc_clk = (ptr == HPM_SDXC0) ? clock_sdxc0 : clock_sdxc1;
+        clock_add_to_group(sdxc_clk, 0);
         sdxc_enable_inverse_clock(ptr, false);
         sdxc_enable_sd_clock(ptr, false);
+
         /* Configure the clock below 400KHz for the identification state */
         if (freq <= 400000UL) {
             clock_set_source_divider(sdxc_clk, clk_src_osc24m, 63);
@@ -122,6 +143,12 @@ uint32_t hpm_board_sd_configure_clock(SDXC_Type *ptr, uint32_t freq, bool need_i
         if (need_inverse) {
             sdxc_enable_inverse_clock(ptr, true);
         }
+
+        hpm_stat_t status = clock_wait_source_stable(sdxc_clk);
+        if (status != status_success) {
+            break;
+        }
+
         sdxc_enable_sd_clock(ptr, true);
         actual_freq = clock_get_frequency(sdxc_clk);
     } while (false);

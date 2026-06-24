@@ -8,10 +8,10 @@ get_filename_component(HPM_TOOLS_ABSOLUTE ${HPM_TOOLS_RELATIVE} ABSOLUTE)
 get_filename_component(HPM_MACOS_OPENOCD_ABSOLUTE ${HPM_MACOS_OPENOCD_RELATIVE} ABSOLUTE)
 set(OPENOCD_CONFIG_DIR ${OPENOCD_CONFIG_ABSOLUTE} CACHE PATH "hpmicro openocd cfg root directory")
 set(HPM_TOOLS_DIR ${HPM_TOOLS_ABSOLUTE} CACHE PATH "hpmicro win tools root directory")
-# 使用板载 FTDI 调试器
-set(HPM_OPENOCD_PROBE "ft2232" CACHE STRING "OpenOCD probe cfg name, e.g. cmsis_dap/ft2232/jlink")
-# 4MHz速度
-set(HPM_OPENOCD_ADAPTER_SPEED_KHZ "4000" CACHE STRING "OpenOCD adapter speed in kHz")
+# 使用 CMSIS-DAP 调试器
+set(HPM_OPENOCD_PROBE "cmsis_dap" CACHE STRING "OpenOCD probe cfg name, e.g. cmsis_dap/ft2232/jlink")
+# 1MHz速度
+set(HPM_OPENOCD_ADAPTER_SPEED_KHZ "1000" CACHE STRING "OpenOCD adapter speed in kHz")
 
 if(NOT CONFIG_XIP)
     board_runner_args(openocd "--use-elf")
