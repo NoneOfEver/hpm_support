@@ -16,3 +16,11 @@ config UART_HPMICRO
 	select DMA if SERIAL_SUPPORT_ASYNC
 	help
 	  This option enables the UART driver for HPM SoC family.
+
+config HPMICRO_UART_DIAG
+	bool "Enable HPMicro UART async diagnostic counters"
+	default n
+	depends on UART_HPMICRO && UART_ASYNC_API
+	help
+	  Enable low-rate diagnostic counter output for the HPMicro UART async
+	  receive path. This is intended for isolated UART tests only.

@@ -33,6 +33,7 @@
 		zephyr,code-partition = &slot0_partition;
 		zephyr,flash-controller = &xpi0;
 		zephyr,canbus = &can2;
+		rm-test,remote-input-uart = &uart10;
 	};
 
 	dram: memory@40000000 {
@@ -74,25 +75,22 @@
 
 &uart0 {
 	status = "okay";
-	current-speed = <115200>;
+	current-speed = <921600>;
 	pinctrl-0 = <&pinmux_uart0>;
 	pinctrl-names = "default";
-	uart-idle-trgm-reg = <0xF022C000>;
-	uart-idle-trgm-pin = <115>;
-	uart-idle-trgm-input-src = <0x0B>;
-	uart-idle-trgm-output-gptmr-in = <0x38>;
-	uart-idle-trgm-output-gptmr-sync = <0x37>;
-	uart-idle-gptmr-reg = <0xF3010000>;
-	uart-idle-gptmr-clock-name = <18743311>;
-	dmas = <&hdma 0 8>, <&hdma 1 9>;
-	dma-names = "rx", "tx";
+	interrupts = <31 1>;
+	interrupt-names = "uart";
 };
 
 &uart2 {
 	status = "okay";
-	current-speed = <115200>;
+	current-speed = <921600>;
 	pinctrl-0 = <&pinmux_uart2>;
 	pinctrl-names = "default";
+	interrupts = <33 1>;
+	interrupt-names = "uart";
+	dmas = <&hdma 2 12>, <&hdma 3 13>;
+	dma-names = "rx", "tx";
 };
 
 &uart3 {
@@ -100,13 +98,23 @@
 	current-speed = <115200>;
 	pinctrl-0 = <&pinmux_uart3>;
 	pinctrl-names = "default";
+	interrupts = <34 1>;
+	interrupt-names = "uart";
+	dmas = <&hdma 4 14>, <&hdma 5 15>;
+	dma-names = "rx", "tx";
 };
 
 &uart10 {
 	status = "okay";
-	current-speed = <115200>;
+	current-speed = <100000>;
+	parity = "even";
+	stop-bits = "2";
 	pinctrl-0 = <&pinmux_uart10>;
 	pinctrl-names = "default";
+	interrupts = <41 1>;
+	interrupt-names = "uart";
+	dmas = <&hdma 6 28>, <&hdma 7 29>;
+	dma-names = "rx", "tx";
 };
 
 &uart11 {
@@ -114,6 +122,8 @@
 	current-speed = <115200>;
 	pinctrl-0 = <&pinmux_uart11>;
 	pinctrl-names = "default";
+	interrupts = <42 1>;
+	interrupt-names = "uart";
 };
 
 &uart12 {
@@ -121,6 +131,10 @@
 	current-speed = <115200>;
 	pinctrl-0 = <&pinmux_uart12>;
 	pinctrl-names = "default";
+	interrupts = <43 1>;
+	interrupt-names = "uart";
+	dmas = <&xdma 2 32>, <&xdma 3 33>;
+	dma-names = "rx", "tx";
 };
 
 &uart15 {
@@ -128,6 +142,8 @@
 	current-speed = <115200>;
 	pinctrl-0 = <&pinmux_uart15>;
 	pinctrl-names = "default";
+	interrupts = <46 1>;
+	interrupt-names = "uart";
 };
 
 &can0 {

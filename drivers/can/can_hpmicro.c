@@ -461,7 +461,11 @@ static int hpm_can_send(const struct device *dev,
         fifo_idx = 1;
     }
 
-    k_mutex_lock(&data->tx_mutex, timeout);
+    ret = k_mutex_lock(&data->tx_mutex, timeout);
+    if (ret != 0) {
+        k_sem_give(&data->tx_sem);
+        return -EAGAIN;
+    }
 
     data->tx_fin_cb[fifo_idx] = callback;
     data->tx_fin_cb_arg[fifo_idx] = user_data;
@@ -472,6 +476,9 @@ static int hpm_can_send(const struct device *dev,
     }
     k_mutex_unlock(&data->tx_mutex);
     if (status != 0) {
+        data->tx_fin_cb[fifo_idx] = NULL;
+        data->tx_fin_cb_arg[fifo_idx] = NULL;
+        k_sem_give(&data->tx_sem);
         return -EIO;
     }
 
