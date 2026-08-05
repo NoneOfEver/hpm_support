@@ -80,6 +80,13 @@
 	pinctrl-names = "default";
 	interrupts = <31 1>;
 	interrupt-names = "uart";
+	/*
+	 * UART0 carries VOFA telemetry. HDMA channels are fully occupied by
+	 * SPI2, UART2, UART3 and UART10, so use free XDMA channels 0/1.
+	 * HPM6750 DMAMUX sources 8 and 9 are UART0 RX and TX respectively.
+	 */
+	dmas = <&xdma 0 8>, <&xdma 1 9>;
+	dma-names = "rx", "tx";
 };
 
 &uart2 {
