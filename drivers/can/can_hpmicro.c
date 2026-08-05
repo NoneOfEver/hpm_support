@@ -18,6 +18,8 @@
 #include <zephyr/device.h>
 #include <zephyr/sys/byteorder.h>
 
+#include <drivers/can/hpmicro_can_batch.h>
+
 #include "hpm_common.h"
 #include "hpm_can_drv.h"
 #include "hpm_clock_drv.h"
@@ -30,8 +32,12 @@
 #else
 #define HPM_CAN_MAX_BITRATE HPM_CAN_BITRATE_MAX
 #endif
-/* 0 - primary buffer, 1 - secondary buffer */
-#define HPM_CAN_NUM_TX_BUF_ELEMENTS (2U)
+/*
+ * Use one outstanding STB frame so each TSONE request has exactly one TSIF
+ * completion. This avoids mixing PTB/STB priorities and avoids inferring a
+ * per-frame callback count from a multi-frame TSALL request.
+ */
+#define HPM_CAN_NUM_TX_BUF_ELEMENTS (1U)
 
 /* Default baudrate: 1Mbps @80MHz CAN clock */
 #define DEFAULT_HPM_CAN_CONFIG {         \
@@ -188,13 +194,20 @@ static void hpm_can_state_change_handler(const struct device *dev)
 static void hpm_can_tc_event_handler(const struct device *dev, uint32_t index)
 {
     struct hpm_can_data *data = dev->data;
-    can_tx_callback_t tx_cb;
+    ARG_UNUSED(index);
+
+    /* Normal Zephyr sends use one STB frame at a time. The single callback
+     * slot therefore maps one TSONE request to one TSIF completion. */
+    const uint32_t completion_index = 0U;
+    can_tx_callback_t tx_cb = data->tx_fin_cb[completion_index];
+    void *tx_arg = data->tx_fin_cb_arg[completion_index];
+    data->tx_fin_cb[completion_index] = NULL;
+    data->tx_fin_cb_arg[completion_index] = NULL;
     k_sem_give(&data->tx_sem);
-    tx_cb = data->tx_fin_cb[index];
-    if (tx_cb  == NULL) {
-        k_sem_give(&data->tx_fin_sem[index]);
+    if (tx_cb == NULL) {
+        k_sem_give(&data->tx_fin_sem[completion_index]);
     } else {
-        tx_cb(dev, 0, data->tx_fin_cb_arg[index]);
+        tx_cb(dev, 0, tx_arg);
     }
 }
 
@@ -251,9 +264,8 @@ static int hpm_can_init(const struct device *dev)
 
     data->can_filter_count = 0;
     for (uint32_t i= 0; i < ARRAY_SIZE(data->tx_fin_sem); i++) {
-        k_sem_init(&data->tx_fin_sem[i], 1, 1);
+        k_sem_init(&data->tx_fin_sem[i], 0, 1);
     }
-
     data->filter_rtr = 0;
     data->filter_rtr_mask = 0;
 
@@ -384,6 +396,126 @@ void convert_can_frame_to_can_frame(const struct can_frame *frame,
     }
 }
 
+static void hpm_can_fill_tx_buffer(CAN_Type *can,
+                                   const can_transmit_buf_t *message)
+{
+    can->TBUF[0] = message->buffer[0];
+    can->TBUF[1] = message->buffer[1];
+
+    const size_t data_len = can_dlc_to_bytes(message->dlc);
+    const size_t copy_words = (data_len + sizeof(uint32_t) - 1U) /
+                              sizeof(uint32_t);
+    for (size_t i = 0U; i < copy_words; ++i) {
+        can->TBUF[2U + i] = message->buffer[2U + i];
+    }
+}
+
+static int hpm_can_validate_tx_frame(const struct hpm_can_data *data,
+                                     const struct can_frame *frame)
+{
+    if (frame == NULL) {
+        return -EINVAL;
+    }
+
+#ifdef CONFIG_CAN_FD_MODE
+    if (data->config.enable_canfd != 0) {
+        if (((frame->flags & CAN_FRAME_ESI) != 0) &&
+            ((frame->flags & CAN_FRAME_FDF) == 0)) {
+            return -ENOTSUP;
+        }
+        if ((frame->flags & CAN_FRAME_RTR) != 0) {
+            return -ENOTSUP;
+        }
+        if (frame->dlc > CANFD_MAX_DLC) {
+            return -EINVAL;
+        }
+    } else
+#endif
+    {
+        if ((frame->flags &
+             (CAN_FRAME_FDF | CAN_FRAME_BRS | CAN_FRAME_ESI)) != 0) {
+            return -ENOTSUP;
+        }
+        if (frame->dlc > CAN_MAX_DLC) {
+            return -EINVAL;
+        }
+    }
+
+    return 0;
+}
+
+int hpm_can_send_batch(const struct device *dev,
+                       const struct can_frame *frames,
+                       size_t frame_count,
+                       k_timeout_t timeout,
+                       can_tx_callback_t callback,
+                       void *user_data)
+{
+    if ((dev == NULL) || (frames == NULL) ||
+        (frame_count == 0U) || (frame_count > 4U)) {
+        return -EINVAL;
+    }
+
+    const struct hpm_can_config *cfg = dev->config;
+    struct hpm_can_data *data = dev->data;
+    CAN_Type *can = cfg->base;
+    enum can_state state;
+
+    for (size_t i = 0U; i < frame_count; ++i) {
+        const int validate_rc = hpm_can_validate_tx_frame(data, &frames[i]);
+        if (validate_rc != 0) {
+            return validate_rc;
+        }
+    }
+
+    if (!data->started) {
+        return -ENETDOWN;
+    }
+    (void)hpm_can_get_state(dev, &state, NULL);
+    if (state == CAN_STATE_BUS_OFF) {
+        return -ENETUNREACH;
+    }
+
+    if (k_sem_take(&data->tx_sem, timeout) != 0) {
+        return -EAGAIN;
+    }
+    if (k_mutex_lock(&data->tx_mutex, timeout) != 0) {
+        k_sem_give(&data->tx_sem);
+        return -EAGAIN;
+    }
+
+    /*
+     * tx_sem serializes normal TSONE sends and explicit TSALL batches.  An
+     * empty STB here therefore establishes an unambiguous batch boundary:
+     * the next secondary-buffer interrupt completes exactly frame_count
+     * frames loaded below.
+     */
+    if (CAN_CMD_STA_CMD_CTRL_TSSTAT_GET(can->CMD_STA_CMD_CTRL) !=
+        CAN_STB_IS_EMPTY) {
+        k_mutex_unlock(&data->tx_mutex);
+        k_sem_give(&data->tx_sem);
+        return -EAGAIN;
+    }
+
+    data->tx_fin_cb[0] = callback;
+    data->tx_fin_cb_arg[0] = user_data;
+
+    can_select_tx_buffer(can, true);
+    for (size_t i = 0U; i < frame_count; ++i) {
+        can_transmit_buf_t tx_buf = {0};
+        convert_can_frame_to_can_frame(&frames[i], &tx_buf);
+        hpm_can_fill_tx_buffer(can, &tx_buf);
+        can_switch_to_next_tx_buffer(can);
+    }
+    can_start_all_message_transmit(can);
+    k_mutex_unlock(&data->tx_mutex);
+
+    if (callback == NULL) {
+        (void)k_sem_take(&data->tx_fin_sem[0], K_FOREVER);
+    }
+    return 0;
+}
+
 
 static int hpm_can_send(const struct device *dev,
                         const struct can_frame *frame,
@@ -454,31 +586,32 @@ static int hpm_can_send(const struct device *dev,
         return -EAGAIN;
     }
 
-    uint32_t fifo_idx = 0;
-    if (!can_is_primary_transmit_buffer_full(can)) {
-        fifo_idx = 0;
-    } else {
-        fifo_idx = 1;
-    }
-
     ret = k_mutex_lock(&data->tx_mutex, timeout);
     if (ret != 0) {
         k_sem_give(&data->tx_sem);
         return -EAGAIN;
     }
 
+    const uint32_t fifo_idx = 0U;
     data->tx_fin_cb[fifo_idx] = callback;
     data->tx_fin_cb_arg[fifo_idx] = user_data;
-    if (fifo_idx == 0) {
-        status = can_send_high_priority_message_nonblocking(can, &tx_buf);
-    } else {
-        status = can_send_message_nonblocking(can, &tx_buf);
-    }
-    k_mutex_unlock(&data->tx_mutex);
+
+    /*
+     * Keep exactly one STB frame outstanding. The SDK helper fills one STB
+     * slot, advances TSNEXT and asserts TSONE, so the following TSIF maps
+     * unambiguously to this callback.
+     */
+    status = can_send_message_nonblocking(can, &tx_buf);
     if (status != 0) {
         data->tx_fin_cb[fifo_idx] = NULL;
         data->tx_fin_cb_arg[fifo_idx] = NULL;
+    }
+    k_mutex_unlock(&data->tx_mutex);
+    if (status != 0) {
         k_sem_give(&data->tx_sem);
+        if (status == status_can_tx_fifo_full) {
+            return -EAGAIN;
+        }
         return -EIO;
     }
 
