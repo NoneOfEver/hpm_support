@@ -33,7 +33,7 @@
 		zephyr,code-partition = &slot0_partition;
 		zephyr,flash-controller = &xpi0;
 		zephyr,canbus = &can2;
-		rm-test,remote-input-uart = &uart10;
+		wbr-control,remote-input-uart = &uart10;
 	};
 
 	dram: memory@40000000 {
@@ -326,4 +326,9 @@
 zephyr_udc0: &usb0 {
 	compatible = "hpmicro,hpm-udc";
 	status = "disabled";
+};
+
+cherryusb_usb0: &usb0 {
+	compatible = "hpmicro,hpm-cherryusb";
+	status = "okay";
 };
