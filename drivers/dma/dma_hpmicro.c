@@ -31,6 +31,7 @@ struct dma_hpm_dma_config {
 	DMA_Type *base;
 	DMAMUX_Type *dmamux_base;
 	int dma_channels; /* number of channels */
+	dma_linked_descriptor_t (*cyclic_descriptors)[2];
 	void (*irq_config_func)(const struct device *dev);
 };
 
@@ -74,7 +75,9 @@ static void hpm_dma_callback(const struct device *dev, void *param, uint8_t chan
 	if (success) {
 		ret = 0;
 	}
-	data->dma_callback(data->dev, data->user_data, channel, ret);
+	if (data->dma_callback != NULL) {
+		data->dma_callback(data->dev, data->user_data, channel, ret);
+	}
 }
 
 __attribute__((section(".isr")))static void dma_hpm_dma_irq_handler(const struct device *dev)
@@ -198,7 +201,7 @@ static int dma_hpm_dma_configure(const struct device *dev, uint32_t channel, str
 		return -ENOTSUP;
 	}
 
-	if (channel > DT_INST_PROP(0, dma_channels)) {
+	if (channel >= DT_INST_PROP(0, dma_channels)) {
 		LOG_ERR("out of DMA channel %d", channel);
 		return -EINVAL;
 	}
@@ -278,6 +281,40 @@ static int dma_hpm_dma_configure(const struct device *dev, uint32_t channel, str
 
 	data->transfer_settings.ch_config = ch_config;
 	data->transfer_settings.valid = true;
+
+	if (config->cyclic) {
+		/*
+		 * 当前 HPM 实现支持一个 block 的硬件循环。两个描述符都从同一
+		 * buffer 起点开始，descriptor0 -> descriptor1 -> descriptor0。
+		 * 屏蔽每轮 terminal-count 中断，避免 DMA 在环回时被上层误认为
+		 * 已经停止；错误/abort 中断仍保留。
+		 */
+		if ((config->block_count != 1U) || (block_config->next_block != NULL)) {
+			irq_unlock(key);
+			return -ENOTSUP;
+		}
+		ch_config.interrupt_mask = DMA_INTERRUPT_MASK_TERMINAL_COUNT;
+		ch_config.linked_ptr = core_local_mem_to_sys_address(
+			HPM_CORE0, (uint32_t)&DEV_CFG(dev)->cyclic_descriptors[channel][1]);
+		if (status_success != dma_config_linked_descriptor(
+			DEV_BASE(dev), &DEV_CFG(dev)->cyclic_descriptors[channel][0],
+			channel, &ch_config)) {
+			irq_unlock(key);
+			return -EFAULT;
+		}
+		ch_config.linked_ptr = core_local_mem_to_sys_address(
+			HPM_CORE0, (uint32_t)&DEV_CFG(dev)->cyclic_descriptors[channel][0]);
+		if (status_success != dma_config_linked_descriptor(
+			DEV_BASE(dev), &DEV_CFG(dev)->cyclic_descriptors[channel][1],
+			channel, &ch_config)) {
+			irq_unlock(key);
+			return -EFAULT;
+		}
+		/* 第一轮结束后进入 descriptor0，之后在两个描述符间永久循环。 */
+		ch_config.linked_ptr = core_local_mem_to_sys_address(
+			HPM_CORE0, (uint32_t)&DEV_CFG(dev)->cyclic_descriptors[channel][0]);
+		data->transfer_settings.ch_config = ch_config;
+	}
 
 	if (status_success != dma_setup_channel(DEV_BASE(dev), channel, &ch_config, false)) {
 		LOG_ERR("Configure DMA channel failed.");
@@ -395,6 +432,9 @@ static int dma_hpm_dma_get_status(const struct device *dev, uint32_t channel,
 		status->busy = true;
 		status->pending_length =
 			hpm_dma_get_transfer_size(DEV_BASE(dev), channel);
+		status->write_position =
+			DEV_CHANNEL_DATA(dev, channel)->transfer_settings.ch_config.size_in_byte -
+			status->pending_length;
 	} else {
 		status->busy = false;
 		status->pending_length = 0;
@@ -442,11 +482,15 @@ static int dma_hpm_dma_init(const struct device *dev)
 
 #define DMA_INIT(n)						       \
 	static void dma_hpm_config_func_##n(const struct device *dev); \
+	static __attribute__((section(".nocache"), aligned(8)))       \
+		dma_linked_descriptor_t dma_cyclic_descriptors_##n       \
+			[DT_INST_PROP(n, dma_channels)][2];                \
 	static const struct dma_hpm_dma_config dma_config_##n = {    \
 		.base = (DMA_Type *)DT_INST_REG_ADDR(n),	       \
 		.dmamux_base =					       \
 			(DMAMUX_Type *)DT_INST_REG_ADDR_BY_IDX(n, 1),  \
 		.dma_channels = DT_INST_PROP(n, dma_channels),	       \
+		.cyclic_descriptors = dma_cyclic_descriptors_##n,	       \
 		.irq_config_func = dma_hpm_config_func_##n,	       \
 	};							       \
 								       \

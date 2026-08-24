@@ -11,9 +11,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/pinctrl.h>
 #include <zephyr/drivers/uart.h>
-#ifdef CONFIG_HPMICRO_UART_DIAG
-#include <zephyr/sys/printk.h>
-#endif
 #include <zephyr/sys/util.h>
 #include <soc.h>
 #include <hpm_common.h>
@@ -23,6 +20,7 @@
 #endif
 #include <zephyr/drivers/dma.h>
 #include <zephyr/logging/log.h>
+#include <drivers/uart_hpmicro.h>
 LOG_MODULE_REGISTER(uart_hpmicro);
 #ifdef CONFIG_UART_ASYNC_API
 
@@ -94,35 +92,19 @@ struct uart_hpm_data {
     dma_info_t dma_rxinfo;
 	dma_info_t dma_txinfo;
 	uint32_t idle_time_out_us;
+	/* true: HDMA linked descriptor 正在持续写应用提供的环形内存。 */
+	bool rx_circular_mode;
 	volatile uint32_t status_flags;
 	struct stream dma_rx;
 	struct stream dma_tx;
-#ifdef CONFIG_HPMICRO_UART_DIAG
-	const struct device *self_dev;
-	struct k_work_delayable diag_work;
-	volatile uint32_t diag_irq_rx_data_avail;
-	volatile uint32_t diag_irq_rx_timeout;
-	volatile uint32_t diag_irq_other;
-	volatile uint32_t diag_dma_rx_done;
-	volatile uint32_t diag_dma_rx_error;
-	volatile uint32_t diag_rx_flush_nonzero;
-	volatile uint32_t diag_rx_flush_zero;
-	uint32_t diag_last_irq_rx_data_avail;
-	uint32_t diag_last_irq_rx_timeout;
-	uint32_t diag_last_irq_other;
-	uint32_t diag_last_dma_rx_done;
-	uint32_t diag_last_dma_rx_error;
-	uint32_t diag_last_rx_flush_nonzero;
-	uint32_t diag_last_rx_flush_zero;
-#endif
 #endif
 };
 
 #ifdef CONFIG_UART_ASYNC_API
 static void uart_hpm_async_rx_flush(const struct device *dev);
-#ifdef CONFIG_HPMICRO_UART_DIAG
-static void uart_hpm_diag_work_handler(struct k_work *work);
-#endif
+static void uart_hpm_handle_rx_timeout(const struct device *dev);
+static void uart_hpm_dma_callback(const struct device *dev, void *arg,
+				  uint32_t channel, int status);
 
 static int uart_hpm_dma_tx_load(const struct device *dev, const uint8_t *buf, size_t len)
 {
@@ -177,14 +159,17 @@ static int uart_hpm_dma_rx_load(const struct device *dev, uint8_t *buf, size_t l
 	/* prepare the block for this RX DMA channel */
 	memset(blk_cfg, 0, sizeof(struct dma_block_config));
 
-	/* rx direction has peripheral as source and mem as dest. */
+	/*
+	 * RX DMA 的职责只有一层：UART RBR/FIFO -> 应用提供的线性 DMA buffer。
+	 * 后续由应用选择复制到 ring buffer，或等待 BUF_RELEASED 后零拷贝处理。
+	 */
 	blk_cfg->dest_address = (uint32_t)buf;
 	stream->dma_cfg.channel_direction = PERIPHERAL_TO_MEMORY;
 	blk_cfg->source_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
 	blk_cfg->dest_addr_adj   = DMA_ADDR_ADJ_INCREMENT;
 
 	blk_cfg->block_size = len;
-	/* Source is SPI DATA reg */
+	/* 源地址固定为 UART 接收缓冲寄存器 RBR，每个 DMA request 搬 1 字节。 */
 	blk_cfg->source_address = (uint32_t)&(base->RBR);
 	stream->dma_cfg.source_burst_length = 1;
 
@@ -237,6 +222,11 @@ static int uart_hpm_configure_init(const struct device *dev, const struct uart_c
 		uart_config.fifo_enable = true;
 		uart_config.dma_enable = true;
 		uart_config.tx_fifo_level = uart_tx_fifo_trg_not_full;
+		/*
+		 * HPM6750 RX FIFO 为 16 字节，这里选择超过 3/4 的接收阈值。
+		 * 达到阈值会产生常规 RX DMA request；不足阈值但连续 4 个字节时间
+		 * 没有新数据时，UART 也会产生 timeout DMA request，把 FIFO 尾数送出。
+		 */
 		uart_config.rx_fifo_level = uart_rx_fifo_trg_gt_three_quarters;
 	}
 #endif
@@ -308,13 +298,6 @@ static int uart_hpm_init(const struct device *dev)
 	struct uart_hpm_data *const data = dev->data;
 	struct uart_config *uart_api_config = &data->uart_config;
 	int ret;
-
-#if defined(CONFIG_UART_ASYNC_API) && defined(CONFIG_HPMICRO_UART_DIAG)
-	if (cfg->async_capable) {
-		data->self_dev = dev;
-		k_work_init_delayable(&data->diag_work, uart_hpm_diag_work_handler);
-	}
-#endif
 
 	ret = pinctrl_apply_state(cfg->pincfg, PINCTRL_STATE_DEFAULT);
 	if (ret < 0) {
@@ -492,22 +475,25 @@ __attribute__((section(".isr"))) static void uart_hpm_isr(const struct device *d
 #ifdef CONFIG_UART_ASYNC_API
 	const struct uart_hpm_cfg *const cfg = dev->config;
 	const uint8_t irq_id = uart_get_irq_id(cfg->base);
-
-	if (cfg->async_capable && (irq_id == uart_intr_id_rx_data_avail)) {
-#ifdef CONFIG_HPMICRO_UART_DIAG
-		++dev_data->diag_irq_rx_data_avail;
-#endif
-	} else if (cfg->async_capable && (irq_id == uart_intr_id_rx_timeout)) {
-#ifdef CONFIG_HPMICRO_UART_DIAG
-		++dev_data->diag_irq_rx_timeout;
-#endif
-		dma_suspend(dev_data->dma_rx.dma_dev, dev_data->dma_rx.channel);
-		uart_hpm_async_rx_flush(dev);
-		dma_resume(dev_data->dma_rx.dma_dev, dev_data->dma_rx.channel);
-	} else if (cfg->async_capable) {
-#ifdef CONFIG_HPMICRO_UART_DIAG
-		++dev_data->diag_irq_other;
-#endif
+	if (cfg->async_capable && (irq_id == uart_intr_id_rx_timeout)) {
+		/*
+		 * 路径一：UART RX timeout，DMA buffer 尚未收满。
+		 * 同一个“4 字节时间无新数据”条件还会让 UART 发出 timeout DMA
+		 * request，把低于 FIFO 阈值的尾数送入 DMA buffer。这里暂停 DMA、
+		 * 读取 pending_length，并把当前已经到达 DMA buffer、但尚未通过
+		 * UART_RX_RDY 发布的字节交给应用。默认模式恢复同一 DMA；若当前设备
+		 * 启用了 timeout-switch，则释放 current 并立即启动 next buffer。
+		 * timeout DMA request 与 CPU ISR 的具体先后由硬件仲裁；flush 只按
+		 * 当时 DMA 的实际进度发布。
+		 */
+		/*
+		 * 循环 DMA 模式绝不能在 timeout 中暂停通道。硬件产生的 timeout
+		 * DMA request 会自行把不足 FIFO 阈值的尾数搬入 ring；读取 IIR
+		 * 得到 irq_id 已经完成中断应答，这里无需再做软件切换。
+		 */
+		if (!dev_data->rx_circular_mode) {
+			uart_hpm_handle_rx_timeout(dev);
+		}
 	}
 #endif
 
@@ -549,8 +535,12 @@ static void async_evt_tx_done(const struct device *dev)
 static void async_evt_rx_rdy(const struct device *dev)
 {
 	struct uart_hpm_data * const data = dev->data;
-    dma_info_t dma_rxinfo = data->dma_rxinfo;
+	dma_info_t dma_rxinfo = data->dma_rxinfo;
 
+	/*
+	 * 用快照构造事件，offset 指向本次新增数据的开头，len 是新增长度。
+	 * 先推进驱动内部 offset，再同步调用应用回调；下一次 flush 只报告后续字节。
+	 */
 	struct uart_event event = {
 		.type = UART_RX_RDY,
 		.data.rx.buf = dma_rxinfo.current_buf,
@@ -569,6 +559,7 @@ static void async_evt_rx_rdy(const struct device *dev)
 
 static void async_evt_rx_buf_request(const struct device *dev)
 {
+	/* 请求应用提前提供 next buffer；此调用会同步进入应用回调。 */
 	struct uart_event evt = {
 		.type = UART_RX_BUF_REQUEST,
 	};
@@ -596,21 +587,23 @@ static void uart_hpm_async_rx_flush(const struct device *dev)
 	ret = dma_get_status(data->dma_rx.dma_dev, data->dma_rx.channel, &stat);
 	if (ret) {
 		LOG_ERR("ERR dma get status.\r\n");
+		data->dma_rxinfo.current_size = 0U;
+		return;
 	}
+	/*
+	 * DMA pending_length 表示本次 96 字节传输还剩多少字节未搬运。
+	 * 已搬总数 = total - pending；再减去之前已通过 UART_RX_RDY 发布的
+	 * current_offset，得到本次新增长度。例如 total=96、offset=0、
+	 * pending=14，则本次发布 82 字节。
+	 */
 	rx_rcv_len = data->dma_rxinfo.current_total_size - 
 				 data->dma_rxinfo.current_offset - 
 				 stat.pending_length;
 	if (rx_rcv_len > 0) {
 		data->dma_rxinfo.current_size = rx_rcv_len;
-#ifdef CONFIG_HPMICRO_UART_DIAG
-		++data->diag_rx_flush_nonzero;
-#endif
 		async_evt_rx_rdy(dev);
 	} else {
 		data->dma_rxinfo.current_size = 0;
-#ifdef CONFIG_HPMICRO_UART_DIAG
-		++data->diag_rx_flush_zero;
-#endif
 	}
 }
 
@@ -633,47 +626,6 @@ static uint32_t uart_hpm_async_tx_flush(const struct device *dev)
 	}
 	return rx_rcv_len;
 }
-
-#ifdef CONFIG_HPMICRO_UART_DIAG
-static void uart_hpm_diag_work_handler(struct k_work *work)
-{
-	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
-	struct uart_hpm_data *data = CONTAINER_OF(dwork, struct uart_hpm_data, diag_work);
-	const struct device *dev = data->self_dev;
-
-	if (dev == NULL) {
-		return;
-	}
-
-	const uint32_t irq4 = data->diag_irq_rx_data_avail;
-	const uint32_t irqc = data->diag_irq_rx_timeout;
-	const uint32_t irq_other = data->diag_irq_other;
-	const uint32_t dma_rx = data->diag_dma_rx_done;
-	const uint32_t dma_err = data->diag_dma_rx_error;
-	const uint32_t flush_nz = data->diag_rx_flush_nonzero;
-	const uint32_t flush_z = data->diag_rx_flush_zero;
-
-	printk("[uart_diag] %s irq4=%u irqc=%u irq_other=%u dma_rx=%u dma_err=%u flush_nz=%u flush_z=%u\n",
-		dev->name,
-		irq4 - data->diag_last_irq_rx_data_avail,
-		irqc - data->diag_last_irq_rx_timeout,
-		irq_other - data->diag_last_irq_other,
-		dma_rx - data->diag_last_dma_rx_done,
-		dma_err - data->diag_last_dma_rx_error,
-		flush_nz - data->diag_last_rx_flush_nonzero,
-		flush_z - data->diag_last_rx_flush_zero);
-
-	data->diag_last_irq_rx_data_avail = irq4;
-	data->diag_last_irq_rx_timeout = irqc;
-	data->diag_last_irq_other = irq_other;
-	data->diag_last_dma_rx_done = dma_rx;
-	data->diag_last_dma_rx_error = dma_err;
-	data->diag_last_rx_flush_nonzero = flush_nz;
-	data->diag_last_rx_flush_zero = flush_z;
-
-	k_work_reschedule(&data->diag_work, K_SECONDS(1));
-}
-#endif
 
 static int uart_hpm_rx_disable(const struct device *dev)
 {
@@ -718,6 +670,11 @@ static int uart_hpm_dma_replace_rx_buffer(const struct device *dev)
 	unsigned int key = irq_lock();
 
 	if (data->dma_rxinfo.next_dst_addr != NULL) {
+		/*
+		 * current buffer 收满时走到这里：停止旧 DMA，把
+		 * 预登记的 next 提升为 current 并清零 offset。先启动新的 current，再向
+		 * 应用请求下一块备用 buffer，缩短 UART 只能依赖硬件 FIFO 的窗口。
+		 */
 		dma_stop(data->dma_rx.dma_dev, data->dma_rx.channel);
 		data->dma_rxinfo.current_buf = data->dma_rxinfo.next_dst_addr;
 		data->dma_rxinfo.current_total_size = data->dma_rxinfo.next_buff_size;
@@ -726,16 +683,26 @@ static int uart_hpm_dma_replace_rx_buffer(const struct device *dev)
 		data->dma_rxinfo.next_buff_size = 0;
 		data->dma_rxinfo.current_mode = 0;
 		data->dma_rxinfo.current_offset = 0;
-		async_evt_rx_buf_request(dev);
 		uart_hpm_dma_rx_load(dev, data->dma_rxinfo.current_buf, data->dma_rxinfo.current_total_size);
 		dma_start(data->dma_rx.dma_dev, data->dma_rx.channel);
 		data->dma_rxinfo.current_mode = 1;
+		async_evt_rx_buf_request(dev);
 		irq_unlock(key);
 		return 0;
 	} else {
 		irq_unlock(key);
 		return -EFAULT;
 	}
+}
+
+static void uart_hpm_handle_rx_timeout(const struct device *dev)
+{
+	struct uart_hpm_data *data = dev->data;
+
+	/* 冻结 DMA 计数，发布已经到达 current buffer 的新字节，再继续接收。 */
+	dma_suspend(data->dma_rx.dma_dev, data->dma_rx.channel);
+	uart_hpm_async_rx_flush(dev);
+	dma_resume(data->dma_rx.dma_dev, data->dma_rx.channel);
 }
 
 static int uart_hpm_callback_set(const struct device *dev, uart_callback_t callback,
@@ -746,6 +713,121 @@ static int uart_hpm_callback_set(const struct device *dev, uart_callback_t callb
 	data->idle_user_callback = callback;
 	data->idle_user_data = user_data;
 
+	return 0;
+}
+
+int uart_hpm_rx_circular_enable(const struct device *dev, uint8_t *buffer, size_t size)
+{
+	struct uart_hpm_data *data;
+	const struct uart_hpm_cfg *config;
+	struct dma_block_config *block;
+	volatile uint8_t discard;
+	unsigned int key;
+	int rc;
+
+	if ((dev == NULL) || (buffer == NULL) || (size == 0U)) {
+		return -EINVAL;
+	}
+	data = dev->data;
+	config = dev->config;
+	if (!config->async_capable) {
+		return -ENOTSUP;
+	}
+
+	key = irq_lock();
+	if ((data->dma_rxinfo.current_mode != 0U) || data->rx_circular_mode) {
+		irq_unlock(key);
+		return -EBUSY;
+	}
+
+	/* 启动前清掉旧 FIFO 数据和 overrun 状态，ring 的第 0 字节成为新边界。 */
+	uart_reset_rx_fifo(config->base);
+	while ((config->base->LSR & UART_LSR_OE_MASK) ||
+	       (config->base->LSR & UART_LSR_DR_MASK)) {
+		discard = config->base->RBR & UART_RBR_RBR_MASK;
+	}
+	block = &data->dma_rx.dma_blk_cfg;
+	memset(block, 0, sizeof(*block));
+	block->source_address = (uint32_t)&config->base->RBR;
+	block->dest_address = (uint32_t)buffer;
+	block->source_addr_adj = DMA_ADDR_ADJ_NO_CHANGE;
+	block->dest_addr_adj = DMA_ADDR_ADJ_INCREMENT;
+	block->block_size = size;
+
+	data->dma_rx.dma_cfg.channel_direction = PERIPHERAL_TO_MEMORY;
+	data->dma_rx.dma_cfg.source_burst_length = 1U;
+	data->dma_rx.dma_cfg.block_count = 1U;
+	data->dma_rx.dma_cfg.head_block = block;
+	data->dma_rx.dma_cfg.user_data = data;
+	data->dma_rx.dma_cfg.dma_callback = NULL;
+	data->dma_rx.dma_cfg.cyclic = 1U;
+
+	rc = dma_config(data->dma_rx.dma_dev, data->dma_rx.channel,
+			&data->dma_rx.dma_cfg);
+	if (rc == 0) {
+		rc = dma_start(data->dma_rx.dma_dev, data->dma_rx.channel);
+	}
+	if (rc != 0) {
+		data->dma_rx.dma_cfg.cyclic = 0U;
+		data->dma_rx.dma_cfg.dma_callback = uart_hpm_dma_callback;
+		irq_unlock(key);
+		return rc;
+	}
+
+	data->dma_rxinfo.current_buf = buffer;
+	data->dma_rxinfo.current_total_size = size;
+	data->dma_rxinfo.current_mode = 1U;
+	data->rx_circular_mode = true;
+	uart_enable_irq(config->base, uart_intr_rx_data_avail_or_timeout);
+	irq_unlock(key);
+	return 0;
+}
+
+int uart_hpm_rx_circular_get_position(const struct device *dev, size_t *position)
+{
+	struct uart_hpm_data *data;
+	struct dma_status status = {0};
+	int rc;
+
+	if ((dev == NULL) || (position == NULL)) {
+		return -EINVAL;
+	}
+	data = dev->data;
+	if (!data->rx_circular_mode) {
+		return -EACCES;
+	}
+	rc = dma_get_status(data->dma_rx.dma_dev, data->dma_rx.channel, &status);
+	if (rc == 0) {
+		*position = status.write_position;
+	}
+	return rc;
+}
+
+int uart_hpm_rx_circular_disable(const struct device *dev)
+{
+	struct uart_hpm_data *data;
+	const struct uart_hpm_cfg *config;
+	unsigned int key;
+
+	if (dev == NULL) {
+		return -EINVAL;
+	}
+	data = dev->data;
+	config = dev->config;
+	if (!data->rx_circular_mode) {
+		return 0;
+	}
+
+	key = irq_lock();
+	uart_disable_irq(config->base, uart_intr_rx_data_avail_or_timeout);
+	dma_stop(data->dma_rx.dma_dev, data->dma_rx.channel);
+	data->rx_circular_mode = false;
+	data->dma_rxinfo.current_mode = 0U;
+	data->dma_rxinfo.current_buf = NULL;
+	data->dma_rxinfo.current_total_size = 0U;
+	data->dma_rx.dma_cfg.cyclic = 0U;
+	data->dma_rx.dma_cfg.dma_callback = uart_hpm_dma_callback;
+	irq_unlock(key);
 	return 0;
 }
 
@@ -820,30 +902,38 @@ static int uart_hpm_rx_enable(const struct device *dev, uint8_t *buf, const size
 
 	unsigned int key = irq_lock();
 
+	/* 记录应用提供的第一个 buffer，它将成为 current DMA buffer。 */
 	data->dma_rxinfo.dst_addr = buf;
 	data->dma_rxinfo.buff_size = len;
 	data->dma_rxinfo.next_dst_addr = NULL;
 	data->dma_rxinfo.next_buff_size = 0;
 	data->dma_rxinfo.current_mode = 0;
+	/*
+	 * 当前驱动只保存该 API 参数，没有用它配置寄存器；FIFO 尾数 DMA request
+	 * 和 RX timeout 中断采用 UART 硬件定义的 4 字节时间条件。
+	 */
 	data->idle_time_out_us = timeout_us;
 	data->dma_rxinfo.current_offset = 0;
 	data->dma_rxinfo.current_buf = data->dma_rxinfo.dst_addr;
 	data->dma_rxinfo.current_total_size = data->dma_rxinfo.buff_size;
 	data->dma_rxinfo.current_size = 0;
 	data->dma_rxinfo.dev = (struct device *)dev;
+	/* 启动新会话前清空 UART RX FIFO/溢出状态，避免把旧字节混入新 buffer。 */
 	uart_reset_rx_fifo(uart_base);
 	while ((uart_base->LSR & UART_LSR_OE_MASK) || \
 			(uart_base->LSR & UART_LSR_DR_MASK)) {
 		buff = uart_base->RBR & UART_RBR_RBR_MASK;
 	}
+	/*
+	 * 在启动第一个 DMA 前同步请求 next buffer。应用通常在这个回调里调用
+	 * uart_rx_buf_rsp()，这样 current 收满时驱动已有备用 buffer 可切换。
+	 */
 	async_evt_rx_buf_request(dev);
 	uart_enable_irq(uart_base, uart_intr_rx_data_avail_or_timeout);
+	/* 配置并启动 UART FIFO -> current buffer 的第一笔 DMA 传输。 */
 	uart_hpm_dma_rx_load(dev, data->dma_rxinfo.current_buf, data->dma_rxinfo.current_total_size);
 	dma_start(data->dma_rx.dma_dev, data->dma_rx.channel);
 	data->dma_rxinfo.current_mode = 1;
-#ifdef CONFIG_HPMICRO_UART_DIAG
-	k_work_reschedule(&data->diag_work, K_SECONDS(1));
-#endif
 	irq_unlock(key);
 
 	return 0;
@@ -853,16 +943,29 @@ static int mcux_lpuart_rx_buf_rsp(const struct device *dev, uint8_t *buf, size_t
 {
 	struct uart_hpm_data *data = dev->data;
 	const struct uart_hpm_cfg *config = dev->config;
+	unsigned int key;
 
 	if (!config->async_capable) {
 		return -ENOTSUP;
 	}
 
-	assert(data->dma_rxinfo.next_dst_addr == NULL);
-	assert(data->dma_rxinfo.next_buff_size == 0);
+	if ((buf == NULL) || (len == 0U)) {
+		return -EINVAL;
+	}
 
+	/*
+	 * next buffer 可能由应用线程提交，需要和 UART/DMA ISR 串行化，
+	 * 不能依赖无锁 assert。
+	 */
+	key = irq_lock();
+	if (data->dma_rxinfo.next_dst_addr != NULL) {
+		irq_unlock(key);
+		return -EBUSY;
+	}
+	/* 这里只登记 next；current 收满或 timeout-switch 时才提升并启动它。 */
 	data->dma_rxinfo.next_dst_addr = buf;
 	data->dma_rxinfo.next_buff_size = len;
+	irq_unlock(key);
 
 	return 0;
 }
@@ -872,11 +975,6 @@ static void uart_hpm_dma_callback(const struct device *dev, void *arg, uint32_t 
 	struct uart_hpm_data *data = arg;
 
 	if (status != 0) {
-#ifdef CONFIG_HPMICRO_UART_DIAG
-		if (channel == data->dma_rx.channel) {
-			++data->diag_dma_rx_error;
-		}
-#endif
 		LOG_ERR("DMA callback error with channel %d.", channel);
 	} else {
 		/* identify the origin of this callback */
@@ -884,10 +982,11 @@ static void uart_hpm_dma_callback(const struct device *dev, void *arg, uint32_t 
 			/* this part of the transfer ends */
 			async_evt_tx_done(data->dma_txinfo.dev);
 		} else if (channel == data->dma_rx.channel) {
-			/* this part of the transfer ends */
-#ifdef CONFIG_HPMICRO_UART_DIAG
-			++data->diag_dma_rx_done;
-#endif
+			/*
+			 * 路径二：current DMA buffer 已收满。
+			 * 先 flush 尚未发布的尾部并同步产生 UART_RX_RDY，再通知旧 buffer
+			 * released，最后切换到 next buffer 并重新启动 DMA。
+			 */
 			uart_hpm_async_rx_flush(data->dma_rxinfo.dev);
 			if (data->dma_rxinfo.current_size > 0) {
 				async_evt_rx_buf_release(data->dma_rxinfo.dev);
