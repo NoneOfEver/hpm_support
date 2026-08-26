@@ -112,7 +112,8 @@ static void soc_init_pma(void)
         return;
     }
 
-    /* Ensure the address and the length are power of 2 aligned */
+    /* Ensure the region satisfies the PMA NAPOT constraints. */
+    assert(length >= CONFIG_HPM_PMA_MIN_REGION_SIZE);
     assert((length & (length - 1U)) == 0U);
     assert((start_addr & (length - 1U)) == 0U);
 

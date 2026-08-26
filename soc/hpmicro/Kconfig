@@ -10,6 +10,13 @@ if SOC_FAMILY_HPM
 
 rsource "${ZEPHYR_SDK_GLUE_MODULE_DIR}/soc/hpmicro/*/Kconfig"
 
+config HPM_PMA_MIN_REGION_SIZE
+	int
+	default 4096
+	help
+	  Minimum size and alignment, in bytes, of an HPMicro PMA NAPOT
+	  region. HPMicro PMA address matching has a 4 KiB granularity.
+
 config USE_DT_CODE_PARTITION
 	default y if BOOTLOADER_MCUBOOT
 
