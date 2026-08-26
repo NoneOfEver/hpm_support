@@ -12,6 +12,16 @@ config SPI_HPMICRO
 	  Enable support for hpmicro spi driver.
 
 if SPI_HPMICRO
+config SPI_HPM_SPI_INTERRUPT
+	bool "HPM SPI interrupt-driven transfers"
+	depends on !SPI_HPM_SPI_DMA
+	help
+	  Use FIFO and transfer-complete interrupts for non-DMA SPI transfers.
+	  The default polling path is reliable for short transfers and does not
+	  turn SPI into software/bit-banged GPIO; the SPI peripheral still clocks
+	  the bus. Enable this experimental path only after validating it with the
+	  required transaction lengths.
+
 config SPI_HPM_SPI_DMA
 	bool "HPM SPI DMA Support"
 	select DMA

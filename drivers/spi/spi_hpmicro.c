@@ -26,8 +26,6 @@ LOG_MODULE_REGISTER(spi_hpmicro);
 
 #define MAX_DATA_WIDTH		32  /* data width 1-32 bits */
 
-#define CONFIG_SPI_INTERRUPT_DRIVEN 1
-
 struct spi_hpm_config {
 	SPI_Type *base;
 	uint32_t clock_name;
@@ -58,7 +56,7 @@ struct spi_hpm_data {
 	spi_control_config_t control_config;
 	struct spi_context ctx;
 	size_t transfer_len;
-#ifdef CONFIG_SPI_INTERRUPT_DRIVEN
+#ifdef CONFIG_SPI_HPM_SPI_INTERRUPT
 	uint8_t *tx_buf;
 	uint8_t *rx_buf;
 #endif
@@ -141,30 +139,34 @@ static void spi_hpm_transfer_next_packet(const struct device *dev)
 	data->control_config = control_config;
 	data->transfer_len = MAX(rx_size, tx_size);
 
-#if CONFIG_SPI_INTERRUPT_DRIVEN
+#ifdef CONFIG_SPI_HPM_SPI_INTERRUPT
 	data->tx_buf = (uint8_t *) ctx->tx_buf;
 	data->rx_buf = (uint8_t *) ctx->rx_buf;
-    stat = spi_control_init(base, &control_config, tx_size, rx_size);
+	stat = spi_control_init(base, &control_config, tx_size, rx_size);
 	if (stat != status_success) {
-        LOG_ERR("SPI control init failed");
+		LOG_ERR("SPI control init failed");
+		spi_context_complete(&data->ctx, dev, -EIO);
 		return;
-    }
+	}
 
 	/* command phase, write cmd to start transfer */
-    stat = spi_write_command(base, spi_master_mode, &control_config, NULL);
-    if (stat != status_success) {
-        LOG_ERR("SPI write command failed");
+	stat = spi_write_command(base, spi_master_mode, &control_config, NULL);
+	if (stat != status_success) {
+		LOG_ERR("SPI write command failed");
+		spi_context_complete(&data->ctx, dev, -EIO);
 		return;
-    }
+	}
 
-		/* enable interrupt */
-		spi_enable_interrupt(base, spi_rx_fifo_threshold_int | spi_tx_fifo_threshold_int | spi_end_int);
+	/* Enable FIFO and transfer-complete interrupts. */
+	spi_enable_interrupt(base, spi_rx_fifo_threshold_int |
+			     spi_tx_fifo_threshold_int | spi_end_int);
 #else
 	stat = spi_transfer(base, &control_config, NULL, NULL,
-                (uint8_t *)tx_data, tx_size, (uint8_t *)rx_data, rx_size);
+			    tx_data, tx_size, rx_data, rx_size);
 
 	if (stat != status_success) {
 		LOG_ERR("Transfer failed");
+		spi_context_complete(&data->ctx, dev, -EIO);
 		return;
 	}
 
@@ -179,7 +181,7 @@ __attribute__((section(".isr")))static void spi_hpm_isr(const struct device *dev
 	struct spi_hpm_data *data = dev->data;
 	SPI_Type *base = config->base;
 	volatile uint32_t irq_status;
-#ifdef CONFIG_SPI_INTERRUPT_DRIVEN
+#ifdef CONFIG_SPI_HPM_SPI_INTERRUPT
 	uint8_t data_len_in_bytes;
 	hpm_stat_t stat;
 #endif
@@ -190,7 +192,7 @@ __attribute__((section(".isr")))static void spi_hpm_isr(const struct device *dev
 		spi_disable_interrupt(base, spi_end_int | spi_rx_fifo_threshold_int | spi_tx_fifo_threshold_int);
 		spi_hpm_master_transfer_callback(base, data);
 		spi_clear_interrupt_status(base, spi_end_int);
-#ifdef CONFIG_SPI_INTERRUPT_DRIVEN
+#ifdef CONFIG_SPI_HPM_SPI_INTERRUPT
 	} else if (irq_status & (spi_rx_fifo_threshold_int | spi_tx_fifo_threshold_int)) {
 		data_len_in_bytes = spi_get_data_length_in_bytes(base);
 		if(data->control_config.common_config.trans_mode == spi_trans_read_only) {
@@ -674,7 +676,9 @@ static int spi_hpm_init(const struct device *dev)
 	const struct spi_hpm_config *config = dev->config;
 	struct spi_hpm_data *data = dev->data;
 
+#ifdef CONFIG_SPI_HPM_SPI_INTERRUPT
 	config->irq_config_func(dev);
+#endif
 
 	err = spi_context_cs_configure_all(&data->ctx);
 	if (err < 0) {
